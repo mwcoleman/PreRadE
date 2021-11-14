@@ -182,17 +182,20 @@ class Extractor:
             # objects = np.argmax(cls_prob[keep_boxes.copy()][:, :-1].to("cpu"), axis=1)
             # objects_conf = np.max(cls_prob[keep_boxes.copy()][:, :-1].to("cpu"), axis=1)
 
-            # keep_boxes is idx of >nms. output_boxes is all boxes (80x4 for each feature?).
+            # keep_boxes is idx of >nms. output_boxes is all boxes (80x4 for each feature??).
             return keep_boxes, cls_boxes#, objects, objects_conf
         # keep_boxes,objects,objects_conf = zip(*[get_output_boxes(boxes[i], batched_inputs[i], proposals[i].image_size, scores[i]) for i in range(len(proposals))])        
         keep_boxes,output_boxes = zip(*[get_output_boxes(boxes[i], batched_inputs[i], proposals[i].image_size, scores[i]) 
                                         for i in range(len(proposals))])
         
-        visual_embeds,output_boxes = zip(*[(base64.b64encode(box_feature[keep_box.copy()]),base64.b64encode(output_box[keep_box.copy()])) # TODO: boxes should be 36x4, not 36x80x4
+        # visual_embeds,output_boxes = zip(*[(base64.b64encode(box_feature[keep_box.copy()].detach().cpu().numpy()),
+        #                                     base64.b64encode(output_box[keep_box.copy()].detach().cpu().numpy())) # TODO: boxes should be 36x4, not 36x80x4
+        visual_embeds,output_boxes = zip(*[(box_feature[keep_box.copy()],
+                                            output_box[keep_box.copy()]) # TODO: boxes should be 36x4, not 36x80x4
                          for box_feature, keep_box, output_box 
                          in zip(box_features,keep_boxes, output_boxes)])
 
-        return visual_embeds, output_boxes #, objects, objects_conf
+        return visual_embeds, output_boxes, len(keep_boxes[0]) #, objects, objects_conf
 
     def visualise_features(self, samples):
         """Takes a sample input (generated from calling PrepareImageInputs)
@@ -302,12 +305,28 @@ class FeatureWriterTSV(object):
         
         # open in append mode for batch writing- 
         # make sure new file name for each dataset
-        with open(self.fname, 'a+', newline='') as tsv:
+        with open(self.fname, 'a+') as tsv:
             writer = csv.DictWriter(tsv, fieldnames=self.fieldnames, delimiter='\t')
-
             for item in items_dict:
+                print([type(v) for v in item.values()])
                 writer.writerow(item)
+
             
+def tsvReader(fname):
+    """Sample method to read feature tsv file for PT data loading"""
+    import sys
+    csv.field_size_limit(sys.maxsize)
+    with open(fname, 'r') as f:
+        reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
+                        "num_boxes", "boxes", "features"], delimiter="\t")
+        for i, item in enumerate(reader):
+            num_boxes = int(item['num_boxes'])
+            for key in ['img_h', 'img_w', 'num_boxes']:
+                item[key] = int(item[key])
+            # slice from 2: to remove b' (csv.writer wraps all vals in str())
+            item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32).reshape(num_boxes,-1)
+            item['boxes'] = np.frombuffer(base64.b64decode(item['boxes'][2:]), dtype=np.float32).reshape(num_boxes,4) # will throw error atm
+    print("done")
 
 BATCH_SIZE=2
 if __name__=='__main__':
@@ -326,30 +345,32 @@ if __name__=='__main__':
         d2_rcnn.show_sample(samples)
         # d2_rcnn.visualise_features(samples)
         
-        visual_embeds, output_boxes = d2_rcnn(samples)
+        visual_embeds, output_boxes, num_boxes = d2_rcnn(samples)
         
         # write current batch to file
         items_dict = [{'img_id': batch['img_ids'][i],
                        'img_h': samples[1][i]['height'],
                        'img_w': samples[1][i]['width'],
-                       'num_boxes': output_boxes[i].shape[0],
-                       'boxes': output_boxes[i].detach().cpu().numpy(),
-                       'features': visual_embeds[i].detach().cpu().numpy()}
-                    #    'boxes': base64.b64encode(output_boxes[i].detach().cpu().numpy()),
-                    #    'features': base64.b64encode(visual_embeds[i].detach().cpu().numpy())}
+                       'num_boxes': num_boxes,
+                    #    'boxes': output_boxes[i],
+                    #    'features': visual_embeds[i]}
+                       'boxes': base64.b64encode(output_boxes[i].detach().cpu().numpy()),
+                       'features': base64.b64encode(visual_embeds[i].detach().cpu().numpy())}
                        for i in range(len(samples[0]))]
         tsv_writer(items_dict)
-
-        # test
-        with open('coco-visual-features.tsv', 'r') as f:
-            reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
-                           "num_boxes", "boxes", "features"], delimiter="\t")
-            for i, item in enumerate(reader):
-                for key in ['img_h', 'img_w', 'num_boxes']:
-                    item[key] = int(item[key])
-
-                item['features'] = np.frombuffer(base64.b64decode(item['features']), dtype=np.float32)
-                print('done')
+        tsvReader('coco-visual-features.tsv')
+        # # test
+        # import sys
+        # csv.field_size_limit(sys.maxsize)
+        # with open('coco-visual-features.tsv', 'r') as f:
+        #     reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
+        #                    "num_boxes", "boxes", "features"], delimiter="\t")
+        #     for i, item in enumerate(reader):
+        #         for key in ['img_h', 'img_w', 'num_boxes']:
+        #             item[key] = int(item[key])
+        #         # slice from 2: to remove b' (csv.writer wraps all vals in str())
+        #         item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32)
+        #         print('done')
 
 
 
