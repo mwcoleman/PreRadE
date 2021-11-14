@@ -19,8 +19,10 @@ from detectron2.utils.visualizer import Visualizer
 
 COCO_ANNOT_PATH = '/media/matt/data21/datasets/ms-coco/2017/val2017/captions_val2017.json'
 COCO_IMG_PATH = '/media/matt/data21/datasets/ms-coco/2017/val2017/images/'
-CFG_PATH = "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
-
+CFG_PATH =  "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
+# "COCO-Detection/faster_rcnn_R_101_FPN_3x.yaml"
+# "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
+#"COCO-Detection/retinanet_R_101_FPN_3x.yaml" Doesn't have proposal network..
 class CocoDataset(Dataset):
     """MS-COCO dataset captions only
     No transforms here, extractor class handles it"""
@@ -56,7 +58,6 @@ def collate_func(batch):
     ids = [b['img_id'] for b in batch]
     return {'images':images, 'captions':captions, 'img_ids':ids}
 
-
 def plot_sample_coco():
     coco = CocoDataset(COCO_ANNOT_PATH, COCO_IMG_PATH)
 
@@ -73,17 +74,20 @@ def plot_sample_coco():
     plt.show()
 
 class Extractor:
-    def __init__(self, cfg_path, batch_size,num_proposals=1000):
+    def __init__(self, cfg_path, batch_size,num_proposals=36,custom_model=False):
         # TODO: args params
         # NMS params - LXMERT uses 36 features
-        self.min_boxes=36
-        self.max_boxes=36
+        self.min_boxes = num_proposals
+        self.max_boxes = num_proposals
         
         # Start with copy of default config
         self.cfg = get_cfg()
         self.cfg.merge_from_file(model_zoo.get_config_file(cfg_path))
         self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
-        self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(cfg_path)
+        if not custom_model:
+            self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(cfg_path)
+        else:
+            self.cfg.MODEL.WEIGHTS = custom_model
         # self.cfg.DATASETS.PRECOMPUTED_PROPOSAL_TOPK_TEST = num_proposals
         self.batch_size=batch_size
         # build model
@@ -112,6 +116,12 @@ class Extractor:
         # Get RPs from the features and image. Based on our config, we get 1000 proposal
         proposals, _ = self.model.proposal_generator(images, features)
 
+        # Reduce all proposals to min found for an image (not great)
+        num_proposals = min(len(p) for p in proposals)
+        if num_proposals < 1000:
+            print(num_proposals)
+            proposals = [p[:num_proposals] for p in proposals]
+
         # We want box_features to be the fc2 outputs of the regions, 
         # so only use the layers that are needed up to that step
         features_list = [features[f] for f in ['p2', 'p3', 'p4', 'p5']]
@@ -121,8 +131,9 @@ class Extractor:
         box_features = self.model.roi_heads.box_head.fc1(box_features)
         box_features = self.model.roi_heads.box_head.fc_relu1(box_features)
         box_features = self.model.roi_heads.box_head.fc2(box_features)
-        # Depends on config and batch size of images
-        box_features = box_features.reshape(self.batch_size, 1000, 1024)
+        # Depends on config and batch size of images.
+        # Might not be 1000 proposals
+        box_features = box_features.reshape(self.batch_size, -1, 1024)
 
         # To get the boxes and scores from the FastRCNNOutputs 
         # we want the prediction logits and boxes:  
@@ -162,8 +173,8 @@ class Extractor:
             test_score_thresh = self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST
             test_nms_thresh = self.cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST
             cls_prob = scores.detach()
-            
-            cls_boxes = output_boxes.tensor.detach().reshape(1000,80,4)
+            # Expect 1000x80x40 but might be less
+            cls_boxes = output_boxes.tensor.detach().reshape(-1,80,4)
             max_conf = torch.zeros((cls_boxes.shape[0]))
             for cls_ind in range(0, cls_prob.shape[1]-1):
                 cls_scores = cls_prob[:, cls_ind+1]
@@ -182,7 +193,7 @@ class Extractor:
             # objects = np.argmax(cls_prob[keep_boxes.copy()][:, :-1].to("cpu"), axis=1)
             # objects_conf = np.max(cls_prob[keep_boxes.copy()][:, :-1].to("cpu"), axis=1)
 
-            # keep_boxes is idx of >nms. output_boxes is all boxes (80x4 for each feature??).
+            # keep_boxes is idx of >nms. output_boxes is all boxes (80x4 for each feature??) sorted by objectness confidence.
             return keep_boxes, cls_boxes#, objects, objects_conf
         # keep_boxes,objects,objects_conf = zip(*[get_output_boxes(boxes[i], batched_inputs[i], proposals[i].image_size, scores[i]) for i in range(len(proposals))])        
         keep_boxes,output_boxes = zip(*[get_output_boxes(boxes[i], batched_inputs[i], proposals[i].image_size, scores[i]) 
@@ -194,6 +205,10 @@ class Extractor:
                                             output_box[keep_box.copy()]) # TODO: boxes should be 36x4, not 36x80x4
                          for box_feature, keep_box, output_box 
                          in zip(box_features,keep_boxes, output_boxes)])
+
+        # output_boxes.shape is 36,80,4 (e.g. 80 boxes per feature, and 80=#classes),
+        #  sorted by confidence. So pick the top 1 (?...)
+        output_boxes = [ob[:,0,:] for ob in output_boxes]
 
         return visual_embeds, output_boxes, len(keep_boxes[0]) #, objects, objects_conf
 
@@ -213,7 +228,7 @@ class Extractor:
         # plt.imshow(cv2.resize(np.moveaxis(sample_img.cpu().numpy(), 0,-1)[:,:,::-1]/255., (images.tensor.shape[-2:][::-1])))
         # plt.show()
         for i,key in enumerate(features.keys()): # p2,p3,p4,p5,p6
-            ax[i+1].imshow(features[key][1,0,:,:].squeeze().detach().cpu().numpy(), cmap='jet')
+            ax[i+1].imshow(features[key][0,0,:,:].squeeze().detach().cpu().numpy(), cmap='jet')
             ax[i+1].set_title(str(features[key].shape).split('[')[1][:-2], fontsize='x-small')
             ax[i+1].axis('off')  
             # plt.imshow(features[key][1,0,:,:].squeeze().detach().cpu().numpy(), cmap='jet')
@@ -225,15 +240,20 @@ class Extractor:
         # Pass in prepared samples (batched_inputs)
         # slice first image
         outputs = self.model(samples[1])[0]
-        print(outputs['instances'].pred_boxes)
+        # (xmin,ymin,xmax,ymax)
+        # print(outputs['instances'].pred_boxes)
         v = Visualizer(samples[1][0]['image'].cpu().permute((1,2,0)), scale=1.2)
+        
         outputs['instances'].pred_boxes.tensor = outputs['instances'].pred_boxes.tensor.detach()
         outputs['instances'].scores = outputs['instances'].scores.detach()
         outputs['instances'].pred_classes = outputs['instances'].pred_classes.detach()
-        outputs['instances'].pred_masks = outputs['instances'].pred_masks.detach()
+        try:
+            outputs['instances'].pred_masks = outputs['instances'].pred_masks.detach()
+        except:
+            # Not a mask model
+            pass
         out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
         cv2.imshow('',out.get_image()) #[:,:,::-1]
-
 class PrepareImageInputs(object):
     """Convert an image to a model input
     The detectron uses resizing and normalization based on
@@ -308,9 +328,7 @@ class FeatureWriterTSV(object):
         with open(self.fname, 'a+') as tsv:
             writer = csv.DictWriter(tsv, fieldnames=self.fieldnames, delimiter='\t')
             for item in items_dict:
-                print([type(v) for v in item.values()])
                 writer.writerow(item)
-
             
 def tsvReader(fname):
     """Sample method to read feature tsv file for PT data loading"""
@@ -326,23 +344,34 @@ def tsvReader(fname):
             # slice from 2: to remove b' (csv.writer wraps all vals in str())
             item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32).reshape(num_boxes,-1)
             item['boxes'] = np.frombuffer(base64.b64decode(item['boxes'][2:]), dtype=np.float32).reshape(num_boxes,4) # will throw error atm
-    print("done")
 
-BATCH_SIZE=2
+BATCH_SIZE=4
 if __name__=='__main__':
     
-    d2_rcnn = Extractor(CFG_PATH, batch_size=BATCH_SIZE, num_proposals=800)
-    print(d2_rcnn.model.backbone.size_divisibility)
+    d2_rcnn = Extractor(CFG_PATH, batch_size=BATCH_SIZE)
     dataset = CocoDataset(COCO_ANNOT_PATH, COCO_IMG_PATH)
-    
     loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_func)
-    tsv_writer = FeatureWriterTSV('coco-visual-features.tsv')
+
+    tsv_writer = FeatureWriterTSV('/media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv')
     
     prepare = PrepareImageInputs(d2_rcnn)
     
+    # # Test with mimic pic
+    # image = plt.imread('./mimic_sample.jpg')
+    # # image = cv2.resize(plt.imread(img_name), self.resize_dim, interpolation=cv2.INTER_AREA)
+    # # expects BGR
+    # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
+    # batch = {'images':[image]}
+    # samples = prepare(batch)
+    # d2_rcnn.show_sample(samples)
+    # d2_rcnn.visualise_features(samples)
+    
+    # # ###
+    import time
+    start_time = time.time()
     for batch_idx, batch in enumerate(loader):
         samples = prepare(batch)
-        d2_rcnn.show_sample(samples)
+        # d2_rcnn.show_sample(samples)
         # d2_rcnn.visualise_features(samples)
         
         visual_embeds, output_boxes, num_boxes = d2_rcnn(samples)
@@ -352,77 +381,13 @@ if __name__=='__main__':
                        'img_h': samples[1][i]['height'],
                        'img_w': samples[1][i]['width'],
                        'num_boxes': num_boxes,
-                    #    'boxes': output_boxes[i],
-                    #    'features': visual_embeds[i]}
                        'boxes': base64.b64encode(output_boxes[i].detach().cpu().numpy()),
                        'features': base64.b64encode(visual_embeds[i].detach().cpu().numpy())}
                        for i in range(len(samples[0]))]
         tsv_writer(items_dict)
-        tsvReader('coco-visual-features.tsv')
-        # # test
-        # import sys
-        # csv.field_size_limit(sys.maxsize)
-        # with open('coco-visual-features.tsv', 'r') as f:
-        #     reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
-        #                    "num_boxes", "boxes", "features"], delimiter="\t")
-        #     for i, item in enumerate(reader):
-        #         for key in ['img_h', 'img_w', 'num_boxes']:
-        #             item[key] = int(item[key])
-        #         # slice from 2: to remove b' (csv.writer wraps all vals in str())
-        #         item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32)
-        #         print('done')
-
-
-
-        # visual_embeds, objects, objects_conf = d2_rcnn(samples)
-        break
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # def prepare_image_inputs(self, cfg, img_list):
-    #     """Convert an image to a model input
-    #         The detectron uses resizing and normalization based on
-    #         the configuration parameters and the input is to be provided using ImageList. 
-    #         The model.backbone.size_divisibility handles the sizes (padding) such 
-    #         that the FPN lateral and output convolutional features have same dimensions.
-
-    #         note: warning is expected
-    #         Note: Modified this for cuda (.cuda)
-    #         device will be 'cuda' if a GPU is available"""
-    #     # Resizing the image according to the configuration
-    #     transform_gen = T.ResizeShortestEdge(
-    #                 [cfg.INPUT.MIN_SIZE_TEST, cfg.INPUT.MIN_SIZE_TEST], cfg.INPUT.MAX_SIZE_TEST
-    #             )
-    #     img_list = [transform_gen.get_transform(img).apply_image(img) for img in img_list]
-
-    #     # Convert to C,H,W format - MC: added '.to(device)
-    #     convert_to_tensor = lambda x: torch.Tensor(x.astype("float32").transpose(2, 0, 1)).to(self.device)
-
-    #     batched_inputs = [{"image":convert_to_tensor(img), "height": img.shape[0], "width": img.shape[1]} for img in img_list]
-
-    #     # Normalizing the image
-    #     num_channels = len(cfg.MODEL.PIXEL_MEAN)
-    #     pixel_mean = torch.Tensor(cfg.MODEL.PIXEL_MEAN).view(num_channels, 1, 1).to(self.device)
-    #     pixel_std = torch.Tensor(cfg.MODEL.PIXEL_STD).view(num_channels, 1, 1).to(self.device)
-    #     normalizer = lambda x: (x - pixel_mean) / pixel_std
-    #     images = [normalizer(x["image"]) for x in batched_inputs]
-
-    #     # Convert to ImageList
-    #     images =  ImageList.from_tensors(images,self.model.backbone.size_divisibility)
-        
-    #     return images, batched_inputs
+        # tsvReader('coco-visual-features.tsv')
+        if batch_idx%100==0:
+            print(batch_idx)
+    elapsed_time = time.time()-start_time
+    print(f"Fin. Extracted features from {len(loader)} images in {elapsed_time} seconds..")
+        # break
