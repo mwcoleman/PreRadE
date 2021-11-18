@@ -16,11 +16,12 @@ class mmRadForPretraining(pl.LightningModule):
 
         self.args = args
         self.config = VisualBertConfig()
-        self.model = VisualBertModel(self.config)
-        self.tokenizer = BertTokenizer
+        self.model = VisualBertModel(self.config).from_pretrained("uclanlp/visualbert-vqa-coco-pre")
 
         self.__init_pretraining_heads()
         self.__init_tokenizer()
+    
+        self.pp = PretextProcessor(self.tokenizer)
 
     def __init_pretraining_heads(self):
         self.text_prediction_head = VisualBertLMPredictionHead
@@ -41,7 +42,7 @@ class mmRadForPretraining(pl.LightningModule):
         )
 
     def training_step(self, batch, batch_idx):
-        
+        # Preprocess based on the pretext tasks
         loss, acc = self.shared_step(batch, batch_idx)
         result = pl.TrainResult(loss)
 
@@ -67,23 +68,32 @@ class mmRadForPretraining(pl.LightningModule):
         # input_ids, attention_mask, token_type_ids (for seq_prediction task), position_ids,
         # visual_embeds, visual_attention_mask, return_dict=True
     
-        # Need to expand batch into inputs here
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        # process batch with pretext obj - MLM
+        batch = self.pp.tokenize_pad_vectorize(batch)
+        batch = self.pp.mask_txt(batch)
+
+
+        # TODO: Handle elsewhere (preproc)
+        visual_attention_mask=torch.ones((len(batch), batch['img']['data']['num_boxes']))
+        visual_token_type_ids=torch.zeros((len(batch), batch['img']['data']['num_boxes']))
+        # just make labels = inputs for now
+        visual_labels = batch['img']['data']['features']
+        labels = torch.hstack(batch['txt']['input_ids'], visual_labels)
 
         outputs = self.model(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            visual_embeds=visual_embeds,
+            input_ids=batch['txt']['masked_input_ids'],
+            attention_mask=batch['txt']['att_mask'],
+            token_type_ids=batch['txt']['type_ids'],
+            position_ids=batch['txt']['pos_ids'],
+            head_mask=None,
+            inputs_embeds=None,
+            visual_embeds=batch['img']['data']['features'],
             visual_attention_mask=visual_attention_mask,
             visual_token_type_ids=visual_token_type_ids,
-            image_text_alignment=image_text_alignment,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
+            image_text_alignment=None,
+            output_attentions=False,
+            output_hidden_states=False,
+            return_dict=True,
         )
 
         # Run through PT heads - MLM only for now.
@@ -94,7 +104,8 @@ class mmRadForPretraining(pl.LightningModule):
         total_loss = None
         
         if labels is not None:
-            total_size = attention_mask.size(-1) + visual_attention_mask.size(-1)
+            # TODO: Increase size for txt+image
+            total_size = batch['txt']['att_mask'].size(-1) + visual_attention_mask.size(-1)
             if labels.size(-1) != total_size:
                 raise ValueError(
                     f"The labels provided should have same sequence length as total attention mask. "
@@ -106,7 +117,7 @@ class mmRadForPretraining(pl.LightningModule):
 
         return total_loss
 
-class PretextProcessing:
+class PretextProcessor:
     """Contains methods to mask etc"""
     def __init__(self, tokenizer, max_seq_len=20, mlm_rate=0.15):
         self.mlm_rate = mlm_rate
@@ -115,45 +126,70 @@ class PretextProcessing:
         
     
     def tokenize_pad_vectorize(self, batch):
-        batch['text_tokens'] = [self.tok.convert_tokens_to_ids(['[CLS]']+self.tok.tokenize(s.strip())+['[SEP]'])
-                                for s in batch['text']]
-        pad_fct = lambda a,i: a[0:i] if len(a) > i else a + [0]*(i-len(a))
+        # batch['txt']['tokens'] = [self.tok.convert_tokens_to_ids(['[CLS]']+self.tok.tokenize(s.strip())+['[SEP]'])
+        #                         for s in batch['txt']['raw']]
+        # pad_fct = lambda a,i: a[0:i] if len(a) > i else a + [0]*(i-len(a))
+        encoded = [self.tok.encode_plus(
+            text=sent,
+            add_special_tokens=True,
+            max_length = self.max_seq_len,
+            truncation=True,
+            pad_to_max_length = True,
+            return_attention_mask = True,
+            return_tensors = 'pt',
+        ) for sent in batch['txt']['raw']]
 
-        batch['input_ids'] = torch.tensor([pad_fct(sent,self.max_seq_len) for sent in batch['text_tokens']],
-                                            dtype=torch.int)  
+        batch['txt']['input_ids'] = torch.vstack([e['input_ids'] for e in encoded])
+        batch['txt']['att_mask'] = torch.vstack([e['attention_mask'] for e in encoded])
+        # batch['txt']['input_ids'] = torch.tensor([pad_fct(sent,self.max_seq_len) for sent in batch['txt']['tokens']],
+        #                                     dtype=torch.int)  
         
+        # Generate other needed inputs for vbert/tx models
+        batch['txt']['type_ids'] = torch.zeros_like(batch['txt']['input_ids'])
+        
+        batch['txt']['pos_ids'] = torch.ones_like(batch['txt']['input_ids']) 
+        batch['txt']['pos_ids'] *= torch.arange(0,batch['txt']['input_ids'].size()[1], 1)
+
         return batch
     
     def mask_txt(self, batch):
         """Returns masked inputs and labels over text inputs
         Generally follows https://keras.io/examples/nlp/masked_language_modeling/"""
-        inp_mask = torch.rand_like(batch['input_ids']) < self.mlm_rate
+        inp_mask = torch.rand(batch['txt']['input_ids'].size(), dtype=torch.float32) < self.mlm_rate
 
         # Avoid masking CLS(101), SEP(102) and padded (0)
-        avoid_mask = torch.logical_or(batch['input_ids']==0, 
-                                  batch['input_ids']==self.tok.convert_tokens_to_ids(['[CLS]']),
-                                  batch['input_ids']==self.tok.convert_tokens_to_ids(['[SEP]']))
+        avoid_mask = torch.add(batch['txt']['input_ids']==0,
+                               torch.add(batch['txt']['input_ids']==self.tok.convert_tokens_to_ids(['[CLS]']),
+                                         batch['txt']['input_ids']==self.tok.convert_tokens_to_ids(['[SEP]'])))
+        
+
         inp_mask[avoid_mask] = False
         
         # Set targets to -100 by default to ignore
-        labels = -100 * torch.ones_like(batch['input_ids'])
-        labels[inp_mask] = batch['input_ids'][inp_mask]
+        labels = -100 * torch.ones_like(batch['txt']['input_ids'])
+        labels[inp_mask] = batch['txt']['input_ids'][inp_mask]
         
         # Mask inputs
-        masked_inputs = batch['input_ids'].copy()        
+        masked_input_ids = batch['txt']['input_ids'].detach().clone()       
         # '[MASK]' is 103
-        # of .15, 0.1 remain unchainged
-        inp_mask_2m = inp_mask & (torch.rand_like(batch['input_ids']) < 0.9)
+        # of .15, 0.1 remain unchanged
+        inp_mask_2m = inp_mask & (torch.rand(batch['txt']['input_ids'].size(), dtype=torch.float32) < 0.9)
 
-        masked_inputs[inp_mask_2m] = self.tok.convert_tokens_to_ids('[MASK]')
+        masked_input_ids[inp_mask_2m] = self.tok.convert_tokens_to_ids('[MASK]')
 
         # and 0.1 to random from the batch
-        inp_mask_2r = inp_mask_2m & (torch.rand_like(batch['input_ids']) < 1/9)
-        masked_inputs[inp_mask_2r] = np.random.choice(batch['input_ids'][~avoid_mask])
+        inp_mask_2r = inp_mask_2m & (torch.rand(batch['txt']['input_ids'].size(), dtype=torch.float32) < 1/9)
+        masked_input_ids[inp_mask_2r] = np.random.choice(batch['txt']['input_ids'][~avoid_mask])
+        batch['txt']['masked_input_ids'] = masked_input_ids
+        batch['txt']['masked_labels'] = labels
 
-        labels = 
+        # TODO: Correct format?
+        return batch
 
-
+    def itm_sampling(self, batch):
+        """Get negative samples and set is_matched labels
+        for the ITM task"""
+        pass
 
 class CocoDataModule(pl.LightningDataModule):
     def __init__(self):
@@ -196,7 +232,7 @@ class CocoDataModule(pl.LightningDataModule):
             shuffle=False,
             collate_fn=lambda x: x,
             drop_last=False, pin_memory=True,
-            num_workers=self.num_workers
+            #num_workers=self.num_workers
         )
         return dl    
 
@@ -246,7 +282,6 @@ class CocoDataset(Dataset):
         # Add captions as duplicate tuples
         self.txt_data = [{'img_id':item['image_id'], 'caption':item['caption']} for item in self.metadata['annotations']]
 
-        # self.id2captions = {item['image_id']:item['caption'] for item in self.metadata['annotations']}
 
     def __len__(self):
         return len(self.img_data)
@@ -258,23 +293,37 @@ class CocoDataset(Dataset):
         # Produces a sample per txt sequence- image features are duplicated for each.        
         img_id = str(self.txt_data[idx]['img_id'])
         caption = self.txt_data[idx]['caption']
-        img_ft = self.img_data[img_id]
-        sample = {'img_id': img_id, 'img_data': img_ft, 'text': caption}
+        img_data = self.img_data[img_id]
+        # Create nested
+        sample = {'txt': {'raw' : caption}, 
+                  'img': {'id' : img_id, 
+                          'features' : img_data['features'], 
+                          'boxes' : img_data['boxes'],
+                          'num_boxes' : img_data['num_boxes'], 
+                          'img_h' : img_data['img_h'],
+                          'img_w' : img_data['img_w']
+                          }
+                 }
         return sample
 
 
-
+# Sample run 
 BATCH_SIZE=2
 if __name__=='__main__':
     dataset = CocoDataset('/media/matt/data21/datasets/ms-coco/2017/val2017/captions_val2017.json',
                       '/media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv')
     loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE)
     # just for testing
-    sample_processor = PretextProcessing(BertTokenizer.from_pretrained('bert-base-uncased'))
+    sample_processor = PretextProcessor(BertTokenizer.from_pretrained('bert-base-uncased'))
 
     for idx,batch in enumerate(loader):
         sample = batch
         sample = sample_processor.tokenize_pad_vectorize(sample)
+        sample = sample_processor.mask_txt(sample)
         break
 
     print("Done")
+
+    #### pl:
+    # dm = CocoDataModule()
+
