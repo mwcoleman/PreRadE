@@ -17,9 +17,9 @@ from detectron2 import model_zoo
 from detectron2.config import get_cfg
 from detectron2.utils.visualizer import Visualizer
 
-COCO_ANNOT_PATH = '/media/matt/data21/datasets/ms-coco/2017/val2017/captions_val2017.json'
-COCO_IMG_PATH = '/media/matt/data21/datasets/ms-coco/2017/val2017/images/'
-CFG_PATH =  "COCO-Detection/retinanet_R_101_FPN_3x.yaml"
+COCO_ANNOT_PATH = '/media/matt/data21/datasets/ms-coco/2017/annotations_trainval2017/captions_train2017.json'
+COCO_IMG_PATH = '/media/matt/data21/datasets/ms-coco/2017/train2017'
+CFG_PATH =  "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
 # "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
 # "COCO-Detection/faster_rcnn_R_101_FPN_3x.yaml"
 # "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
@@ -353,19 +353,19 @@ if __name__=='__main__':
     dataset = CocoDataset(COCO_ANNOT_PATH, COCO_IMG_PATH)
     loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_func)
 
-    tsv_writer = FeatureWriterTSV('/media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv')
+    tsv_writer = FeatureWriterTSV('/media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv')
     
     prepare = PrepareImageInputs(d2_rcnn)
     
     # Test with mimic pic
-    image = plt.imread('./mimic_sample.jpg')
+    # image = plt.imread('./mimic_sample.jpg')
     # image = cv2.resize(plt.imread(img_name), self.resize_dim, interpolation=cv2.INTER_AREA)
     # expects BGR
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
-    batch = {'images':[image]}
-    samples = prepare(batch)
-    d2_rcnn.show_sample(samples)
-    d2_rcnn.visualise_features(samples)
+    # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
+    # batch = {'images':[image]}
+    # samples = prepare(batch)
+    # d2_rcnn.show_sample(samples)
+    # d2_rcnn.visualise_features(samples)
     
     # # ###
     import time

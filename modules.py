@@ -14,312 +14,6 @@ from transformers.models.visual_bert.modeling_visual_bert import VisualBertLMPre
 from transformers.models.visual_bert.modeling_visual_bert import *
 
 
-class TempVisualBertModel(VisualBertPreTrainedModel):
-    """
-    The model can behave as an encoder (with only self-attention) following the architecture described in `Attention is
-    all you need <https://arxiv.org/abs/1706.03762>`__ by Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit,
-    Llion Jones, Aidan N. Gomez, Lukasz Kaiser and Illia Polosukhin.
-    """
-
-    def __init__(self, config, add_pooling_layer=True):
-        super().__init__(config)
-        self.config = config
-
-        self.embeddings = TempVisualBertEmbeddings(config)
-        self.encoder = VisualBertEncoder(config)
-
-        self.pooler = VisualBertPooler(config) if add_pooling_layer else None
-
-        self.bypass_transformer = config.bypass_transformer
-
-        if self.bypass_transformer:
-            self.additional_layer = VisualBertLayer(config)
-
-        # Initialize weights and apply final processing
-        # self.post_init()
-
-    def get_input_embeddings(self):
-        return self.embeddings.word_embeddings
-
-    def set_input_embeddings(self, value):
-        self.embeddings.word_embeddings = value
-
-    def _prune_heads(self, heads_to_prune):
-        """
-        Prunes heads of the model. heads_to_prune: dict of {layer_num: list of heads to prune in this layer} See base
-        class PreTrainedModel
-        """
-        for layer, heads in heads_to_prune.items():
-            self.encoder.layer[layer].attention.prune_heads(heads)
-
-    def forward(
-        self,
-        input_ids=None,
-        attention_mask=None,
-        token_type_ids=None,
-        position_ids=None,
-        head_mask=None,
-        inputs_embeds=None,
-        visual_embeds=None,
-        visual_attention_mask=None,
-        visual_token_type_ids=None,
-        image_text_alignment=None,
-        output_attentions=None,
-        output_hidden_states=None,
-        return_dict=None,
-    ):
-        r"""
-        Returns:
-        Example::
-            >>> # Assumption: `get_visual_embeddings(image)` gets the visual embeddings of the image.
-            >>> from transformers import BertTokenizer, VisualBertModel
-            >>> import torch
-            >>> tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-            >>> model = VisualBertModel.from_pretrained('uclanlp/visualbert-vqa-coco-pre')
-            >>> inputs = tokenizer("The capital of France is Paris.", return_tensors="pt")
-            >>> visual_embeds = get_visual_embeddings(image).unsqueeze(0)
-            >>> visual_token_type_ids = torch.ones(visual_embeds.shape[:-1], dtype=torch.long)
-            >>> visual_attention_mask = torch.ones(visual_embeds.shape[:-1], dtype=torch.float)
-            >>> inputs.update({
-            ...     "visual_embeds": visual_embeds,
-            ...     "visual_token_type_ids": visual_token_type_ids,
-            ...     "visual_attention_mask": visual_attention_mask
-            ... })
-            >>> outputs = model(**inputs)
-            >>> last_hidden_states = outputs.last_hidden_state
-        """
-
-        output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
-        output_hidden_states = (
-            output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
-        )
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-
-        if input_ids is not None and inputs_embeds is not None:
-            raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
-        elif input_ids is not None:
-            input_shape = input_ids.size()
-        elif inputs_embeds is not None:
-            input_shape = inputs_embeds.size()[:-1]
-        else:
-            raise ValueError("You have to specify either input_ids or inputs_embeds")
-
-        batch_size, seq_length = input_shape
-        device = input_ids.device if input_ids is not None else inputs_embeds.device
-
-        if visual_embeds is not None:
-            visual_input_shape = visual_embeds.size()[:-1]
-
-        if attention_mask is None:
-            attention_mask = torch.ones(input_shape, device=device)
-
-        if visual_embeds is not None and visual_attention_mask is None:
-            visual_attention_mask = torch.ones(visual_input_shape, device=device)
-
-        # We can provide a self-attention mask of dimensions [batch_size, from_seq_length, to_seq_length]
-        # ourselves in which case we just need to make it broadcastable to all heads.
-        if visual_embeds is not None:
-            combined_attention_mask = torch.cat((attention_mask, visual_attention_mask), dim=-1)
-            extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(
-                combined_attention_mask, [batch_size, input_shape + visual_input_shape], device
-            )
-
-        else:
-            extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(
-                attention_mask, [batch_size, input_shape], device
-            )
-
-        # Prepare head mask if needed
-        # 1.0 in head_mask indicate we keep the head
-        # attention_probs has shape bsz x n_heads x N x N
-        # input head_mask has shape [num_heads] or [num_hidden_layers x num_heads]
-        # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
-        head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
-
-        embedding_output = self.embeddings(
-            input_ids=input_ids,
-            position_ids=position_ids,
-            token_type_ids=token_type_ids,
-            inputs_embeds=inputs_embeds,
-            visual_embeds=visual_embeds,
-            visual_token_type_ids=visual_token_type_ids,
-            image_text_alignment=image_text_alignment,
-        )
-
-        if self.bypass_transformer and visual_embeds is not None:
-            text_length = input_ids.size(1)
-            text_embedding_output = embedding_output[:, :text_length, :]
-            visual_embedding_output = embedding_output[:, text_length:, :]
-
-            text_extended_attention_mask = extended_attention_mask[:, :, text_length, :text_length]
-
-            encoded_outputs = self.encoder(
-                text_embedding_output,
-                attention_mask=text_extended_attention_mask,
-                output_attentions=output_attentions,
-                output_hidden_states=output_hidden_states,
-                return_dict=return_dict,
-            )
-            sequence_output = encoded_outputs[0]
-            concatenated_input = torch.cat((sequence_output, visual_embedding_output), dim=1)
-            sequence_output = self.additional_layer(concatenated_input, extended_attention_mask)
-            pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
-
-        else:
-            encoder_outputs = self.encoder(
-                embedding_output,
-                attention_mask=extended_attention_mask,
-                head_mask=head_mask,
-                output_attentions=output_attentions,
-                output_hidden_states=output_hidden_states,
-                return_dict=return_dict,
-            )
-            sequence_output = encoder_outputs[0]
-
-            pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
-
-        if not return_dict:
-            return (sequence_output, pooled_output) + encoder_outputs[1:]
-
-        return BaseModelOutputWithPooling(
-            last_hidden_state=sequence_output,
-            pooler_output=pooled_output,
-            hidden_states=encoder_outputs.hidden_states,
-            attentions=encoder_outputs.attentions,
-        )
-
-class TempVisualBertEmbeddings(nn.Module):
-    """Construct the embeddings from word, position and token_type embeddings and visual embeddings."""
-
-    def __init__(self, config):
-        super().__init__()
-        self.word_embeddings = nn.Embedding(config.vocab_size, config.hidden_size, padding_idx=config.pad_token_id)
-        self.position_embeddings = nn.Embedding(config.max_position_embeddings, config.hidden_size)
-        self.token_type_embeddings = nn.Embedding(config.type_vocab_size, config.hidden_size)
-
-        # self.LayerNorm is not snake-cased to stick with TensorFlow model variable name and be able to load
-        # any TensorFlow checkpoint file
-
-        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-
-        # position_ids (1, len position emb) is contiguous in memory and exported when serialized
-        self.register_buffer("position_ids", torch.arange(config.max_position_embeddings).expand((1, -1)))
-
-        # For Visual Features
-        # Token type and position embedding for image features
-        self.visual_token_type_embeddings = nn.Embedding(config.type_vocab_size, config.hidden_size)
-        self.visual_position_embeddings = nn.Embedding(config.max_position_embeddings, config.hidden_size)
-
-        if config.special_visual_initialize:
-            self.visual_token_type_embeddings.weight.data = nn.Parameter(
-                self.token_type_embeddings.weight.data.clone(), requires_grad=True
-            )
-            self.visual_position_embeddings.weight.data = nn.Parameter(
-                self.position_embeddings.weight.data.clone(), requires_grad=True
-            )
-
-        self.visual_projection = nn.Linear(config.visual_embedding_dim, config.hidden_size)
-
-    def forward(
-        self,
-        input_ids=None,
-        token_type_ids=None,
-        position_ids=None,
-        inputs_embeds=None,
-        visual_embeds=None,
-        visual_token_type_ids=None,
-        image_text_alignment=None,
-    ):
-        if input_ids is not None:
-            input_shape = input_ids.size()
-        else:
-            input_shape = inputs_embeds.size()[:-1]
-
-        seq_length = input_shape[1]
-
-        if position_ids is None:
-            position_ids = self.position_ids[:, :seq_length]
-
-        if inputs_embeds is None:
-            inputs_embeds = self.word_embeddings(input_ids)
-
-        if token_type_ids is None:
-            token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=self.position_ids.device)
-
-        token_type_embeddings = self.token_type_embeddings(token_type_ids)
-
-        embeddings = inputs_embeds + token_type_embeddings
-
-        # Absolute Position Embeddings
-        position_embeddings = self.position_embeddings(position_ids)
-        embeddings += position_embeddings
-
-        if visual_embeds is not None:
-            if visual_token_type_ids is None:
-                visual_token_type_ids = torch.ones(
-                    visual_embeds.size()[:-1], dtype=torch.long, device=self.position_ids.device
-                )
-
-            visual_embeds = self.visual_projection(visual_embeds)
-            visual_token_type_embeddings = self.visual_token_type_embeddings(visual_token_type_ids)
-
-            if image_text_alignment is not None:
-                # image_text_alignment = Batch x image_length x alignment_number.
-                # Each element denotes the position of the word corresponding to the image feature. -1 is the padding value.
-
-                dtype = token_type_embeddings.dtype
-                image_text_alignment_mask = (image_text_alignment != -1).long()
-                # Get rid of the -1.
-                image_text_alignment = image_text_alignment_mask * image_text_alignment
-
-                # Batch x image_length x alignment length x dim
-                visual_position_embeddings = self.position_embeddings(image_text_alignment)
-                visual_position_embeddings *= image_text_alignment_mask.to(dtype=dtype).unsqueeze(-1)
-                visual_position_embeddings = visual_position_embeddings.sum(2)
-
-                # We want to averge along the alignment_number dimension.
-                image_text_alignment_mask = image_text_alignment_mask.to(dtype=dtype).sum(2)
-
-                if (image_text_alignment_mask == 0).sum() != 0:
-                    image_text_alignment_mask[image_text_alignment_mask == 0] = 1  # Avoid divide by zero error
-                    logger.warning(
-                        "Found 0 values in `image_text_alignment_mask`. Setting them to 1 to avoid divide-by-zero error."
-                    )
-                visual_position_embeddings = visual_position_embeddings / image_text_alignment_mask.unsqueeze(-1)
-
-                visual_position_ids = torch.zeros(
-                    *visual_embeds.size()[:-1], dtype=torch.long, device=visual_embeds.device
-                )
-
-                # When fine-tuning the detector , the image_text_alignment is sometimes padded too long.
-                if visual_position_embeddings.size(1) != visual_embeds.size(1):
-                    if visual_position_embeddings.size(1) < visual_embeds.size(1):
-                        raise ValueError(
-                            f"Visual position embeddings length: {visual_position_embeddings.size(1)} "
-                            f"should be the same as `visual_embeds` length: {visual_embeds.size(1)}"
-                        )
-                    visual_position_embeddings = visual_position_embeddings[:, : visual_embeds.size(1), :]
-
-                visual_position_embeddings = visual_position_embeddings + self.visual_position_embeddings(
-                    visual_position_ids
-                )
-            else:
-                visual_position_ids = torch.zeros(
-                    *visual_embeds.size()[:-1], dtype=torch.long, device=visual_embeds.device
-                )
-                visual_position_embeddings = self.visual_position_embeddings(visual_position_ids)
-
-            visual_embeddings = visual_embeds + visual_position_embeddings + visual_token_type_embeddings
-
-            embeddings = torch.cat((embeddings, visual_embeddings), dim=1)
-
-        embeddings = self.LayerNorm(embeddings)
-        embeddings = self.dropout(embeddings)
-        return embeddings
-
-
-
 class mmRadForPretraining(pl.LightningModule):
     def __init__(self, args, tokenizer='bert-base-uncased'):
         super().__init__()
@@ -405,7 +99,7 @@ class mmRadForPretraining(pl.LightningModule):
 
         # TODO: Handle elsewhere (preproc)
         num_features = batch['img']['num_boxes'][0]
-        visual_attention_mask=torch.ones((len(batch), num_features)).to(self.device)
+        visual_attention_mask=torch.ones((len(batch['img']['id']), num_features)).to(self.device)
         visual_token_type_ids=torch.zeros((len(batch), num_features)).to(self.device)
        
         # just make labels = inputs (for now)
@@ -550,11 +244,12 @@ class CocoDataModule(pl.LightningDataModule):
         super().__init__()
 
         # Add args
-        self.batch_size=2
-        self.valid_batch_size=2
+        self.batch_size=batch_size
+        # TODO: fix so can have other sizes
+        self.valid_batch_size=256 
         self.shuffle=True
         self.drop_last = False
-        self.num_workers = 12
+        # self.num_workers = 12
 
     def prepare_data(self):
         # Called on 1 GPU only
@@ -564,9 +259,9 @@ class CocoDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         # Called on every GPU
         if stage=='fit' or stage is None:
-            self.train_dset = CocoDataset('/media/matt/data21/datasets/ms-coco/2017/val2017/captions_val2017.json',
-                      '/media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv')
-            self.valid_dset = CocoDataset('/media/matt/data21/datasets/ms-coco/2017/val2017/captions_val2017.json',
+            self.train_dset = CocoDataset('/media/matt/data21/mmRad/captions_train2017.json',
+                      '/media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv')
+            self.valid_dset = CocoDataset('/media/matt/data21/mmRad/captions_val2017.json',
                       '/media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv')
 
         if stage=='test' or stage is None:
@@ -579,7 +274,7 @@ class CocoDataModule(pl.LightningDataModule):
             self.train_dset, batch_size=self.batch_size,
             shuffle=self.shuffle,
             # collate_fn=lambda x: x,
-            drop_last=self.drop_last, pin_memory=True
+            drop_last=self.drop_last, pin_memory=True,
             # num_workers=self.num_workers
         )
         return dl
@@ -590,7 +285,7 @@ class CocoDataModule(pl.LightningDataModule):
             shuffle=False,
             # collate_fn=lambda x: x,
             drop_last=False, pin_memory=True,
-            #num_workers=self.num_workers
+            # num_workers=self.num_workers
         )
         return dl    
 
@@ -598,7 +293,7 @@ class CocoDataModule(pl.LightningDataModule):
 from pytorch_lightning.callbacks import Callback
 
 class MyCallBack(Callback):
-    def on_train_end(self, trainer, pl_module):
+    def on_epoch_start(self, trainer, pl_module):
         print("\n")
 
 def load_tsv(fname, topk=None):
@@ -697,6 +392,6 @@ if __name__=='__main__':
     dm = CocoDataModule(BATCH_SIZE)
     mmRad = mmRadForPretraining(args=None)
 
-    trainer = pl.Trainer(gpus=1, callbacks=[MyCallBack()])
+    trainer = pl.Trainer(gpus=1, callbacks=[MyCallBack()], 
+                         log_every_n_steps=20, max_epochs=20, deterministic=True)
     trainer.fit(mmRad, dm)
-    print('hi')
