@@ -1,20 +1,38 @@
-import random, os, json, csv, base64, time
+import os, json, csv, base64, time
 import torch
 from torch import nn
-import collections
 import numpy as np
 from torch.nn import CrossEntropyLoss, SmoothL1Loss
 from torch.utils.data import DataLoader, Dataset
 import pytorch_lightning as pl
 import torch.optim as optim
 
-from transformers import BertTokenizer, VisualBertModel, VisualBertConfig, VisualBertPreTrainedModel
+from transformers import BertTokenizer, VisualBertModel, VisualBertConfig #, VisualBertPreTrainedModel
 from transformers.models.visual_bert.modeling_visual_bert import VisualBertLMPredictionHead
-# TEMP:
-from transformers.models.visual_bert.modeling_visual_bert import *
+
+from pytorch_lightning.loggers import WandbLogger, wandb
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 
 
-class mmRadForPretraining(pl.LightningModule):
+
+class MMRadForPretraining(pl.LightningModule):
+    
+    @staticmethod
+    def add_model_specific_args(parent_parser):
+        parser = parent_parser.add_argument_group("MMRadForPretraining")
+        
+        # Model config
+        parser.add_argument('--loadModelConfig', dest='load_model_config', default=None)
+        
+        # Pretraining config
+        parser.add_argument
+
+        # Training hyperparams
+        parser.add_argument('--lr', type=float, default=1e-4)
+        parser.add_argument('--loadModel', dest='load_model', default=None)
+
+        return parent_parser
+
     def __init__(self, args, tokenizer='bert-base-uncased'):
         super().__init__()
 
@@ -65,10 +83,9 @@ class mmRadForPretraining(pl.LightningModule):
         loss, acc = self.shared_step(batch, batch_idx)
         # result = pl.TrainResult(loss)
 
-        container = {'train_loss': loss, 'train_acc': acc}
+        logs = {'train_loss': loss, 'train_acc': acc}
 
-        # result.log_dict(container, on_step = True, on_epoch = True, prog_bar = True, logger = True)
-
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True)
         return loss
     
     def validation_step(self, batch, batch_idx):
@@ -76,8 +93,8 @@ class mmRadForPretraining(pl.LightningModule):
         loss, acc = self.shared_step(batch, batch_idx)
         # result = pl.EvalResult(checkpoint_on = loss)
 
-        container = {'val_loss': loss, 'val_acc': acc}        
-        # result.log_dict(container, on_step = True, on_epoch = True, prog_bar = True, logger = True)
+        logs = {'val_loss': loss, 'val_acc': acc}        
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True)
 
         return loss
 
@@ -157,7 +174,6 @@ class mmRadForPretraining(pl.LightningModule):
         optimizer = optim.Adam(self.model.parameters(), lr = 2e-5)
 
         return [optimizer]
-
 
 class PretextProcessor:
     """Contains methods to mask etc"""
@@ -239,30 +255,59 @@ class PretextProcessor:
         for the ITM task"""
         pass
 
-class CocoDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size):
+class MMRadDM(pl.LightningDataModule):
+    @staticmethod
+    def add_model_specific_args(parent_parser):
+        parser = parent_parser.add_argument_group("MMRadDM")
+        # Data splits
+        parser.add_argument("--train", dest='train_split', default='mscoco_train')
+        parser.add_argument("--valid", dest='valid_split', default='mscoco_val')
+        parser.add_argument("--test", default=None)
+        parser.add_argument("--dropLast", dest='drop_last', default=True)
+        parser.add_argument("--shuffle", default=True)
+        parser.add_argument("--topk", default=1000)
+        parser.add_argument("--topkVal", dest='val_topk', default=None)
+
+        # Sizing
+        parser.add_argument('--batchSize', dest='batch_size', type=int, default=256)
+        parser.add_argument('--batchSizeVal', dest='valid_batch_size', type=int, default=256)
+
+        # Data path
+        parser.add_argument('--dataPath', dest='data_path', default="/media/matt/data21/mmRad/")
+
+        return parent_parser
+    
+    
+    def __init__(self, args):
         super().__init__()
 
         # Add args
-        self.batch_size=batch_size
+        self.batch_size=args.batch_size
         # TODO: fix so can have other sizes
-        self.valid_batch_size=256 
-        self.shuffle=True
-        self.drop_last = False
+        self.valid_batch_size=args.valid_batch_size 
+        self.shuffle=args.shuffle
+        self.drop_last = args.drop_last
+        self.shuffle=args.shuffle
+        self.topk=args.topk
+        self.val_topk=args.val_topk
+        self.train_split=args.train_split
+        self.valid_split=args.valid_split
+        self.data_path=args.data_path
         # self.num_workers = 12
-
     def prepare_data(self):
         # Called on 1 GPU only
-
         pass
 
     def setup(self, stage=None):
         # Called on every GPU
         if stage=='fit' or stage is None:
-            self.train_dset = CocoDataset('/media/matt/data21/mmRad/captions_train2017.json',
-                      '/media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv')
-            self.valid_dset = CocoDataset('/media/matt/data21/mmRad/captions_val2017.json',
-                      '/media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv')
+
+            if self.train_split=='mscoco_train':
+                self.train_dset = CocoDataset(self.data_path+'captions_train2017.json',
+                        self.data_path+'img_features/mscoco-train_2017-custom.tsv', topk=self.topk)
+            if self.valid_split=='mscoco_val':
+                self.valid_dset = CocoDataset(self.data_path+'captions_val2017.json',
+                        self.data_path+'img_features/mscoco-val_2017-custom.tsv', topk=self.val_topk)
 
         if stage=='test' or stage is None:
             pass
@@ -289,12 +334,16 @@ class CocoDataModule(pl.LightningDataModule):
         )
         return dl    
 
-
-from pytorch_lightning.callbacks import Callback
-
 class MyCallBack(Callback):
     def on_epoch_start(self, trainer, pl_module):
         print("\n")
+class InputMonitor(Callback):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        if (batch_idx + 1) % trainer.log_every_n_steps == 0:
+            x, y = batch
+            logger = trainer.logger
+            logger.experiment.add_histogram("input", x, global_step=trainer.global_step)
+            logger.experiment.add_histogram("target", y, global_step=trainer.global_step)
 
 def load_tsv(fname, topk=None):
     """Load object features from tsv file.
@@ -332,7 +381,7 @@ def load_tsv(fname, topk=None):
 class CocoDataset(Dataset):
     """MS-COCO dataset captions only
     No transforms/process here"""
-    def __init__(self, json_fp, img_ft_path, topk=None):
+    def __init__(self, json_fp, img_ft_path, topk=5000):
         super().__init__()
 
         with open(json_fp) as f:
@@ -372,7 +421,6 @@ class CocoDataset(Dataset):
 
 
 # Sample run 
-BATCH_SIZE=256
 if __name__=='__main__':
     # dataset = CocoDataset('/media/matt/data21/datasets/ms-coco/2017/val2017/captions_val2017.json',
     #                   '/media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv')
@@ -389,9 +437,43 @@ if __name__=='__main__':
     # print("Done")
 
     #### pl:
-    dm = CocoDataModule(BATCH_SIZE)
-    mmRad = mmRadForPretraining(args=None)
 
-    trainer = pl.Trainer(gpus=1, callbacks=[MyCallBack()], 
-                         log_every_n_steps=20, max_epochs=20, deterministic=True)
+    ## Args
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+
+    # Program level
+    parser.add_argument('--name', dest='run_name', default='mlm-256')
+    parser.add_argument('--seed', type=int, default=808, help='random seed')
+    parser.add_argument('--maxSeqLen', dest='max_seq_len', type=int, default=20)
+    parser.add_argument('--epochs', dest='epochs', type=int, default=100)
+    parser.add_argument('--savePath', dest='model_checkpoint_path', type=str, default=os.getcwd()+'/checkpoint')
+    # Model specific
+    parser = MMRadForPretraining.add_model_specific_args(parser)
+    # Data specific
+    parser = MMRadDM.add_model_specific_args(parser)
+    # Trainer specific
+    parser = pl.Trainer.add_argparse_args(parser)
+
+    args = parser.parse_args()
+
+    
+    
+
+    dm = MMRadDM(args)
+    mmRad = MMRadForPretraining(args=args)
+    
+    wandb_logger = WandbLogger(name=args.run_name, project='mmRad')
+    wandb_logger.watch(mmRad)
+
+    checkpoint_callback = ModelCheckpoint(
+        monitor="val_loss",
+        dirpath=args.model_checkpoint_path
+    )
+
+    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[MyCallBack(), InputMonitor()], 
+                         log_every_n_steps=50, max_epochs=args.epochs, deterministic=True,
+                         logger=wandb_logger)
+    
+    print(f"Beginning training run with #{args.topk} from {args.train_split} for #{args.epochs} epochs...")
     trainer.fit(mmRad, dm)
