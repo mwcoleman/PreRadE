@@ -1,0 +1,24 @@
+2021-11-29 09:02:46,656 INFO    MainThread:11557 [wandb_setup.py:_flush():71] setting env: {}
+2021-11-29 09:02:46,657 INFO    MainThread:11557 [wandb_setup.py:_flush():71] setting login settings: {}
+2021-11-29 09:02:46,657 INFO    MainThread:11557 [wandb_init.py:_log_setup():371] Logging user logs to /home/matt/Coding/research/lxmert_lightning_v2/wandb/run-20211129_090246-ps3l4pes/logs/debug.log
+2021-11-29 09:02:46,657 INFO    MainThread:11557 [wandb_init.py:_log_setup():372] Logging internal logs to /home/matt/Coding/research/lxmert_lightning_v2/wandb/run-20211129_090246-ps3l4pes/logs/debug-internal.log
+2021-11-29 09:02:46,657 INFO    MainThread:11557 [wandb_init.py:init():404] calling init triggers
+2021-11-29 09:02:46,658 INFO    MainThread:11557 [wandb_init.py:init():409] wandb.init called with sweep_config: {}
+config: {}
+2021-11-29 09:02:46,658 INFO    MainThread:11557 [wandb_init.py:init():449] starting backend
+2021-11-29 09:02:46,658 INFO    MainThread:11557 [backend.py:_multiprocessing_setup():95] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2021-11-29 09:02:46,681 INFO    MainThread:11557 [backend.py:ensure_launched():199] starting backend process...
+2021-11-29 09:02:46,698 INFO    MainThread:11557 [backend.py:ensure_launched():204] started backend process with pid: 11664
+2021-11-29 09:02:46,700 INFO    MainThread:11557 [wandb_init.py:init():458] backend started and connected
+2021-11-29 09:02:46,704 INFO    MainThread:11557 [wandb_init.py:init():519] updated telemetry
+2021-11-29 09:02:46,750 INFO    MainThread:11557 [wandb_init.py:init():549] communicating current version
+2021-11-29 09:02:48,274 INFO    MainThread:11557 [wandb_init.py:init():554] got version response 
+2021-11-29 09:02:48,274 INFO    MainThread:11557 [wandb_init.py:init():564] communicating run to backend with 30 second timeout
+2021-11-29 09:02:49,160 INFO    MainThread:11557 [wandb_init.py:init():592] starting run threads in backend
+2021-11-29 09:02:51,398 INFO    MainThread:11557 [wandb_run.py:_console_start():1816] atexit reg
+2021-11-29 09:02:51,399 INFO    MainThread:11557 [wandb_run.py:_redirect():1690] redirect: SettingsConsole.REDIRECT
+2021-11-29 09:02:51,400 INFO    MainThread:11557 [wandb_run.py:_redirect():1695] Redirecting console.
+2021-11-29 09:02:51,404 INFO    MainThread:11557 [wandb_run.py:_redirect():1751] Redirects installed.
+2021-11-29 09:02:51,404 INFO    MainThread:11557 [wandb_init.py:init():619] run started, returning control to user process
+2021-11-29 09:02:51,405 INFO    MainThread:11557 [wandb_watch.py:watch():43] Watching
+2021-11-29 09:03:11,887 INFO    MainThread:11557 [wandb_run.py:_config_callback():962] config_cb None None {}

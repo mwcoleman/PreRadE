@@ -1,0 +1,3099 @@
+[34m[1mwandb[39m[22m: logging graph, to disable use `wandb.watch(log_graph=False)`
+Global seed set to 808
+Trainer already configured with model summary callbacks: [<class 'pytorch_lightning.callbacks.model_summary.ModelSummary'>]. Skipping setting a default `ModelSummary` callback.
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+Beginning training run with #5120 from mscoco_train for #200 epochs...
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv
+Loaded 5120 images in file /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv in 8 seconds.
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv
+Loaded 5000 images in file /media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv in 8 seconds.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Epoch 0:   0%|                                                                                                                                                                      | 0/40 [00:00<?, ?it/s]
+  | Name                 | Type                       | Params
+--------------------------------------------------------------------
+0 | model                | VisualBertModel            | 111 M
+1 | text_prediction_head | VisualBertLMPredictionHead | 24.1 M
+2 | seq_relationship     | Linear                     | 1.5 K
+3 | transform_img_ft     | Linear                     | 2.1 M
+4 | transform_img_box    | Linear                     | 10.2 K
+5 | transform_ln_ft      | LayerNorm                  | 4.1 K
+6 | transform_ln_box     | LayerNorm                  | 4.1 K
+--------------------------------------------------------------------
+137 M     Trainable params
+0         Non-trainable params
+137 M     Total params
+550.533   Total estimated model params size (MB)
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:111: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 53. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 42. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+Global seed set to 808
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:111: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 45. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 66. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+Epoch 0:  10%| | 4/40 [00:03<00:35,  1.02it/s, loss=10.1, v_num=frhy, train_loss_step=9.710, train_acc_step=14.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.237, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 56. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 43. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  15%|▏| 6/40 [00:05<00:32,  1.06it/s, loss=9.92, v_num=frhy, train_loss_step=9.450, train_acc_step=13.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.151, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 52. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  20%|▏| 8/40 [00:07<00:29,  1.09it/s, loss=9.73, v_num=frhy, train_loss_step=9.090, train_acc_step=15.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.222, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 69. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 46. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  28%|▎| 11/40 [00:09<00:26,  1.11it/s, loss=9.52, v_num=frhy, train_loss_step=8.880, train_acc_step=14.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.198, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 65. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 40. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 61. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  35%|▎| 14/40 [00:12<00:23,  1.13it/s, loss=9.41, v_num=frhy, train_loss_step=8.670, train_acc_step=15.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.157, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 50. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  40%|▍| 16/40 [00:14<00:21,  1.13it/s, loss=9.27, v_num=frhy, train_loss_step=8.680, train_acc_step=13.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.119, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 37. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 32. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  55%|▌| 22/40 [00:18<00:14,  1.21it/s, loss=9.12, v_num=frhy, train_loss_step=8.330, train_acc_step=14.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.139, grad_2.0_norm/model.e
+Validating:   5%|███████▊                                                                                                                                                   | 1/20 [00:00<00:07,  2.40it/s]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 55. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Validating:  30%|██████████████████████████████████████████████▌                                                                                                            | 6/20 [00:02<00:06,  2.29it/s]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 48. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 76. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Validating:  55%|████████████████████████████████████████████████████████████████████████████████████▋                                                                     | 11/20 [00:04<00:03,  2.29it/s]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 47. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 54. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 44. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Validating:  75%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌                                      | 15/20 [00:06<00:02,  2.19it/s]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 72. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 64. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 51. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 57. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 41. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+Epoch 1:   5%| | 2/40 [00:01<00:34,  1.09it/s, loss=8.95, v_num=frhy, train_loss_step=8.440, train_acc_step=18.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.185, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 68. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+Epoch 1:  18%|▏| 7/40 [00:06<00:30,  1.08it/s, loss=8.61, v_num=frhy, train_loss_step=8.070, train_acc_step=21.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.160, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 38. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 1:  22%|▏| 9/40 [00:08<00:28,  1.08it/s, loss=8.51, v_num=frhy, train_loss_step=8.020, train_acc_step=20.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.166, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 87. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 1:  28%|▎| 11/40 [00:10<00:26,  1.08it/s, loss=8.42, v_num=frhy, train_loss_step=7.970, train_acc_step=20.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.149, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 49. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+Epoch 1:  38%|▍| 15/40 [00:13<00:23,  1.08it/s, loss=8.25, v_num=frhy, train_loss_step=7.910, train_acc_step=20.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.193, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 73. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 71. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 1:  42%|▍| 17/40 [00:15<00:21,  1.08it/s, loss=8.18, v_num=frhy, train_loss_step=8.020, train_acc_step=19.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.248, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 39. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 1:  62%|▋| 25/40 [00:20<00:12,  1.21it/s, loss=8.06, v_num=frhy, train_loss_step=7.390, train_acc_step=28.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.182, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+Epoch 2:  12%|▏| 5/40 [00:04<00:33,  1.04it/s, loss=7.83, v_num=frhy, train_loss_step=7.470, train_acc_step=30.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.276, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 67. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+Epoch 2:  30%|▎| 12/40 [00:11<00:26,  1.06it/s, loss=7.64, v_num=frhy, train_loss_step=7.270, train_acc_step=30.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.184, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 58. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 60. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 2:  35%|▎| 14/40 [00:13<00:24,  1.07it/s, loss=7.57, v_num=frhy, train_loss_step=7.110, train_acc_step=31.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.263, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 63. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+Epoch 2:  52%|▌| 21/40 [00:18<00:17,  1.11it/s, loss=7.4, v_num=frhy, train_loss_step=7.040, train_acc_step=32.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.245, grad_2.0_norm/model.em
+
+
+
+
+
+Validating:  90%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌               | 18/20 [00:08<00:00,  2.10it/s]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 59. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+Epoch 3:  35%|▎| 14/40 [00:12<00:23,  1.09it/s, loss=6.94, v_num=frhy, train_loss_step=6.320, train_acc_step=40.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.388, grad_2.0_norm/model.e
+
+Epoch 3:  42%|▍| 17/40 [00:15<00:21,  1.09it/s, loss=6.86, v_num=frhy, train_loss_step=6.520, train_acc_step=37.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.494, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 34. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 3:  48%|▍| 19/40 [00:17<00:19,  1.08it/s, loss=6.81, v_num=frhy, train_loss_step=6.690, train_acc_step=37.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.278, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 85. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 86. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+Epoch 3:  57%|▌| 23/40 [00:19<00:14,  1.18it/s, loss=6.8, v_num=frhy, train_loss_step=6.840, train_acc_step=37.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.428, grad_2.0_norm/model.em
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 4:  52%|▌| 21/40 [00:20<00:18,  1.03it/s, loss=6.45, v_num=frhy, train_loss_step=6.260, train_acc_step=38.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.579, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+Epoch 5:  20%|▏| 8/40 [00:07<00:29,  1.08it/s, loss=6.29, v_num=frhy, train_loss_step=5.740, train_acc_step=45.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.374, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 109. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+Epoch 5:  30%|▎| 12/40 [00:11<00:25,  1.08it/s, loss=6.22, v_num=frhy, train_loss_step=6.220, train_acc_step=38.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.683, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 93. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+Epoch 5:  55%|▌| 22/40 [00:19<00:15,  1.15it/s, loss=6.02, v_num=frhy, train_loss_step=5.660, train_acc_step=44.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.561, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+Epoch 6:  10%| | 4/40 [00:03<00:34,  1.06it/s, loss=5.98, v_num=frhy, train_loss_step=6.200, train_acc_step=41.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.444, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 35. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+Epoch 6:  60%|▌| 24/40 [00:19<00:13,  1.20it/s, loss=5.88, v_num=frhy, train_loss_step=5.510, train_acc_step=46.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.506, grad_2.0_norm/model.e
+
+
+
+
+
+
+Epoch 7:   8%| | 3/40 [00:02<00:35,  1.05it/s, loss=5.86, v_num=frhy, train_loss_step=5.440, train_acc_step=48.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.542, grad_2.0_norm/model.em
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 70. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+Epoch 7:  28%|▎| 11/40 [00:10<00:27,  1.07it/s, loss=5.76, v_num=frhy, train_loss_step=5.820, train_acc_step=43.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.717, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 31. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+Epoch 7:  55%|▌| 22/40 [00:19<00:15,  1.15it/s, loss=5.71, v_num=frhy, train_loss_step=5.510, train_acc_step=46.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.520, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 8:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=5.55, v_num=frhy, train_loss_step=5.640, train_acc_step=43.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.720, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 9:  52%|▌| 21/40 [00:20<00:18,  1.03it/s, loss=5.36, v_num=frhy, train_loss_step=5.000, train_acc_step=51.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.693, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+Epoch 10:  25%|▎| 10/40 [00:09<00:27,  1.07it/s, loss=5.29, v_num=frhy, train_loss_step=5.390, train_acc_step=47.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.445, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 89. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+Epoch 10:  57%|▌| 23/40 [00:19<00:14,  1.18it/s, loss=5.22, v_num=frhy, train_loss_step=5.510, train_acc_step=44.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.720, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+Epoch 11:  15%|▏| 6/40 [00:05<00:31,  1.06it/s, loss=5.23, v_num=frhy, train_loss_step=5.180, train_acc_step=48.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.612, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 78. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+Epoch 11:  60%|▌| 24/40 [00:20<00:13,  1.20it/s, loss=5.1, v_num=frhy, train_loss_step=5.080, train_acc_step=49.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.661, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 12:  40%|▍| 16/40 [00:14<00:22,  1.08it/s, loss=5.11, v_num=frhy, train_loss_step=5.130, train_acc_step=49.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.607, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 107. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 12:  52%|▌| 21/40 [00:18<00:16,  1.13it/s, loss=5.07, v_num=frhy, train_loss_step=5.290, train_acc_step=47.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.010, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+Epoch 13:  20%|▏| 8/40 [00:07<00:29,  1.07it/s, loss=5, v_num=frhy, train_loss_step=4.950, train_acc_step=49.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.804, grad_2.0_norm/model.embe
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 80. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+Epoch 13:  48%|▍| 19/40 [00:17<00:19,  1.08it/s, loss=4.98, v_num=frhy, train_loss_step=5.030, train_acc_step=50.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.140, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 75. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+Epoch 13:  60%|▌| 24/40 [00:19<00:13,  1.20it/s, loss=4.97, v_num=frhy, train_loss_step=5.030, train_acc_step=50.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.916, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 14:  52%|▌| 21/40 [00:20<00:18,  1.04it/s, loss=4.85, v_num=frhy, train_loss_step=4.420, train_acc_step=57.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.793, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+Epoch 15:  25%|▎| 10/40 [00:09<00:28,  1.07it/s, loss=4.87, v_num=frhy, train_loss_step=4.560, train_acc_step=53.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.823, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 99. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+Epoch 15:  48%|▍| 19/40 [00:17<00:19,  1.08it/s, loss=4.77, v_num=frhy, train_loss_step=4.750, train_acc_step=53.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.697, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 112. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+Epoch 15:  57%|▌| 23/40 [00:19<00:14,  1.18it/s, loss=4.79, v_num=frhy, train_loss_step=4.740, train_acc_step=53.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.757, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 16:  52%|▌| 21/40 [00:18<00:16,  1.14it/s, loss=4.78, v_num=frhy, train_loss_step=4.850, train_acc_step=54.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.651, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 17:  38%|▍| 15/40 [00:13<00:23,  1.08it/s, loss=4.64, v_num=frhy, train_loss_step=4.710, train_acc_step=54.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.705, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 150. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+Epoch 17:  57%|▌| 23/40 [00:19<00:14,  1.18it/s, loss=4.57, v_num=frhy, train_loss_step=4.530, train_acc_step=54.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.919, grad_2.0_norm/model.
+
+
+
+
+
+Epoch 18:   0%| | 0/40 [00:00<?, ?it/s, loss=4.57, v_num=frhy, train_loss_step=4.530, train_acc_step=54.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.919, grad_2.0_norm/model.embedding
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 36. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+Epoch 18:  40%|▍| 16/40 [00:14<00:21,  1.09it/s, loss=4.65, v_num=frhy, train_loss_step=4.890, train_acc_step=50.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.738, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 74. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 18:  45%|▍| 18/40 [00:16<00:20,  1.09it/s, loss=4.64, v_num=frhy, train_loss_step=4.380, train_acc_step=56.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.880, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 84. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+Epoch 18:  55%|▌| 22/40 [00:18<00:15,  1.16it/s, loss=4.67, v_num=frhy, train_loss_step=4.800, train_acc_step=52.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.948, grad_2.0_norm/model.
+
+
+
+
+
+
+
+Epoch 19:   8%| | 3/40 [00:02<00:35,  1.04it/s, loss=4.61, v_num=frhy, train_loss_step=4.640, train_acc_step=55.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.523, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 33. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+Epoch 19:  60%|▌| 24/40 [00:21<00:14,  1.10it/s, loss=4.44, v_num=frhy, train_loss_step=4.670, train_acc_step=54.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.739, grad_2.0_norm/model.
+
+
+
+
+
+
+
+Epoch 20:  12%|▏| 5/40 [00:04<00:33,  1.05it/s, loss=4.48, v_num=frhy, train_loss_step=4.500, train_acc_step=54.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.727, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 27. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+Epoch 20:  52%|▌| 21/40 [00:18<00:16,  1.13it/s, loss=4.49, v_num=frhy, train_loss_step=4.620, train_acc_step=55.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.110, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 21:  60%|▌| 24/40 [00:19<00:13,  1.20it/s, loss=4.45, v_num=frhy, train_loss_step=4.660, train_acc_step=54.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.850, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 22:  55%|▌| 22/40 [00:19<00:15,  1.16it/s, loss=4.29, v_num=frhy, train_loss_step=4.600, train_acc_step=56.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.050, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+Epoch 23:  25%|▎| 10/40 [00:09<00:27,  1.08it/s, loss=4.36, v_num=frhy, train_loss_step=4.390, train_acc_step=56.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.080, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 83. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+Epoch 23:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=4.36, v_num=frhy, train_loss_step=3.970, train_acc_step=60.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.902, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 24:  55%|▌| 22/40 [00:20<00:16,  1.07it/s, loss=4.26, v_num=frhy, train_loss_step=4.150, train_acc_step=59.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.020, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 25:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=4.2, v_num=frhy, train_loss_step=4.260, train_acc_step=57.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.798, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 26:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=4.08, v_num=frhy, train_loss_step=3.890, train_acc_step=61.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.766, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 27:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=4.12, v_num=frhy, train_loss_step=4.080, train_acc_step=61.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.565, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 28:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=4.1, v_num=frhy, train_loss_step=4.050, train_acc_step=58.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.040, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 29:  48%|▍| 19/40 [00:17<00:19,  1.10it/s, loss=4.06, v_num=frhy, train_loss_step=4.360, train_acc_step=57.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.750, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 92. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 81. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+Epoch 29:  57%|▌| 23/40 [00:20<00:15,  1.10it/s, loss=4.05, v_num=frhy, train_loss_step=3.830, train_acc_step=62.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.790, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 30:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=3.9, v_num=frhy, train_loss_step=3.930, train_acc_step=59.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.700, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 31:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=3.89, v_num=frhy, train_loss_step=4.000, train_acc_step=60.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.720, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 32:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=3.79, v_num=frhy, train_loss_step=3.940, train_acc_step=62.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.685, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 33:  62%|▋| 25/40 [00:20<00:12,  1.23it/s, loss=3.86, v_num=frhy, train_loss_step=3.830, train_acc_step=62.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.210, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 34:  60%|▌| 24/40 [00:21<00:14,  1.11it/s, loss=3.7, v_num=frhy, train_loss_step=3.450, train_acc_step=68.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.947, grad_2.0_norm/model.e
+
+
+
+
+
+
+Epoch 35:   5%| | 2/40 [00:01<00:36,  1.04it/s, loss=3.69, v_num=frhy, train_loss_step=3.770, train_acc_step=63.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.000, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 90. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+Epoch 35:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=3.72, v_num=frhy, train_loss_step=3.520, train_acc_step=64.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.877, grad_2.0_norm/model.
+Validating:   5%|███████▊                                                                                                                                                   | 1/20 [00:00<00:07,  2.45it/s]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 123. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 36:  62%|▋| 25/40 [00:20<00:12,  1.24it/s, loss=3.75, v_num=frhy, train_loss_step=3.820, train_acc_step=61.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.831, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 37:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=3.64, v_num=frhy, train_loss_step=3.590, train_acc_step=64.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.070, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 38:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=3.66, v_num=frhy, train_loss_step=3.600, train_acc_step=64.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.100, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 39:  55%|▌| 22/40 [00:20<00:16,  1.06it/s, loss=3.64, v_num=frhy, train_loss_step=3.280, train_acc_step=68.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.210, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 40:  62%|▋| 25/40 [00:20<00:12,  1.24it/s, loss=3.57, v_num=frhy, train_loss_step=3.570, train_acc_step=67.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.974, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 41:  57%|▌| 23/40 [00:19<00:14,  1.18it/s, loss=3.58, v_num=frhy, train_loss_step=3.960, train_acc_step=61.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.320, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 42:  38%|▍| 15/40 [00:13<00:22,  1.09it/s, loss=3.49, v_num=frhy, train_loss_step=3.460, train_acc_step=65.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.220, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 77. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 42:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=3.51, v_num=frhy, train_loss_step=3.660, train_acc_step=62.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.743, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 43:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=3.51, v_num=frhy, train_loss_step=3.490, train_acc_step=64.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.752, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 44:  55%|▌| 22/40 [00:20<00:16,  1.07it/s, loss=3.44, v_num=frhy, train_loss_step=3.190, train_acc_step=67.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.792, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 45:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=3.44, v_num=frhy, train_loss_step=3.460, train_acc_step=65.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.280, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 46:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=3.41, v_num=frhy, train_loss_step=3.870, train_acc_step=62.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.956, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 47:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=3.32, v_num=frhy, train_loss_step=3.540, train_acc_step=64.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.090, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 48:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=3.25, v_num=frhy, train_loss_step=3.520, train_acc_step=66.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.150, grad_2.0_norm/model.
+
+
+
+
+
+
+
+Epoch 49:  12%|▏| 5/40 [00:04<00:32,  1.07it/s, loss=3.26, v_num=frhy, train_loss_step=3.180, train_acc_step=67.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.150, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 95. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+Epoch 49:  55%|▌| 22/40 [00:20<00:16,  1.07it/s, loss=3.26, v_num=frhy, train_loss_step=3.300, train_acc_step=68.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.770, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 50:  62%|▋| 25/40 [00:20<00:12,  1.23it/s, loss=3.28, v_num=frhy, train_loss_step=3.090, train_acc_step=69.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.070, grad_2.0_norm/model.
+
+
+
+
+
+Epoch 51:   2%| | 1/40 [00:01<00:39,  1.00s/it, loss=3.28, v_num=frhy, train_loss_step=3.500, train_acc_step=64.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.823, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 94. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+
+Epoch 51:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=3.31, v_num=frhy, train_loss_step=3.260, train_acc_step=68.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.040, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 52:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=3.25, v_num=frhy, train_loss_step=3.290, train_acc_step=68.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.320, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 53:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=3.21, v_num=frhy, train_loss_step=3.480, train_acc_step=64.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.200, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 54:  55%|▌| 22/40 [00:20<00:16,  1.06it/s, loss=3.18, v_num=frhy, train_loss_step=2.940, train_acc_step=70.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.988, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 55:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=3.08, v_num=frhy, train_loss_step=3.080, train_acc_step=69.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.762, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+Epoch 56:  28%|▎| 11/40 [00:10<00:26,  1.09it/s, loss=3.11, v_num=frhy, train_loss_step=3.100, train_acc_step=68.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.060, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 82. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+Epoch 56:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=3.11, v_num=frhy, train_loss_step=3.090, train_acc_step=68.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.913, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 57:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=3.11, v_num=frhy, train_loss_step=3.220, train_acc_step=69.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.599, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 58:  55%|▌| 22/40 [00:18<00:15,  1.16it/s, loss=3.07, v_num=frhy, train_loss_step=3.200, train_acc_step=69.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.170, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 59:  52%|▌| 21/40 [00:20<00:18,  1.04it/s, loss=3.1, v_num=frhy, train_loss_step=3.450, train_acc_step=67.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.270, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 60:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=3.07, v_num=frhy, train_loss_step=3.090, train_acc_step=70.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.946, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 61:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.97, v_num=frhy, train_loss_step=2.670, train_acc_step=72.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.310, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 62:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=3.08, v_num=frhy, train_loss_step=3.220, train_acc_step=70.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.833, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+Epoch 63:  18%|▏| 7/40 [00:06<00:30,  1.09it/s, loss=3.01, v_num=frhy, train_loss_step=2.760, train_acc_step=74.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.090, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 79. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+Epoch 63:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.98, v_num=frhy, train_loss_step=2.700, train_acc_step=74.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.859, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 64:  52%|▌| 21/40 [00:20<00:18,  1.04it/s, loss=2.9, v_num=frhy, train_loss_step=2.700, train_acc_step=74.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.730, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 65:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=2.95, v_num=frhy, train_loss_step=2.910, train_acc_step=71.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.170, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 66:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.89, v_num=frhy, train_loss_step=3.740, train_acc_step=62.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.200, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 67:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=2.86, v_num=frhy, train_loss_step=2.850, train_acc_step=70.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.886, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 68:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.84, v_num=frhy, train_loss_step=2.800, train_acc_step=71.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.170, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 69:  52%|▌| 21/40 [00:20<00:18,  1.05it/s, loss=2.86, v_num=frhy, train_loss_step=2.980, train_acc_step=71.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.982, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 70:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=2.89, v_num=frhy, train_loss_step=2.810, train_acc_step=73.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.978, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 71:  55%|▌| 22/40 [00:18<00:15,  1.16it/s, loss=2.79, v_num=frhy, train_loss_step=2.320, train_acc_step=78.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.909, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 72:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=2.64, v_num=frhy, train_loss_step=2.700, train_acc_step=72.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.050, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 73:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.75, v_num=frhy, train_loss_step=2.920, train_acc_step=71.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.150, grad_2.0_norm/model.
+
+
+
+
+
+Validating:  90%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌               | 18/20 [00:08<00:00,  2.13it/s]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 97. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+
+
+
+Epoch 74:  62%|▋| 25/40 [00:22<00:13,  1.13it/s, loss=2.74, v_num=frhy, train_loss_step=3.050, train_acc_step=70.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.230, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 75:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=2.71, v_num=frhy, train_loss_step=2.870, train_acc_step=71.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.865, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 76:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.7, v_num=frhy, train_loss_step=2.630, train_acc_step=73.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.170, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 77:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=2.73, v_num=frhy, train_loss_step=3.000, train_acc_step=70.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.983, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+Epoch 78:  18%|▏| 7/40 [00:06<00:30,  1.08it/s, loss=2.78, v_num=frhy, train_loss_step=2.820, train_acc_step=71.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.915, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 91. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+Epoch 78:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.69, v_num=frhy, train_loss_step=2.370, train_acc_step=78.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.220, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 79:  60%|▌| 24/40 [00:21<00:14,  1.11it/s, loss=2.67, v_num=frhy, train_loss_step=3.020, train_acc_step=69.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.040, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 80:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.58, v_num=frhy, train_loss_step=2.580, train_acc_step=74.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.070, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 81:  62%|▋| 25/40 [00:20<00:12,  1.24it/s, loss=2.6, v_num=frhy, train_loss_step=2.500, train_acc_step=74.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.070, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 82:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=2.57, v_num=frhy, train_loss_step=2.590, train_acc_step=75.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.914, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 83:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.53, v_num=frhy, train_loss_step=2.630, train_acc_step=72.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.500, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 84:  60%|▌| 24/40 [00:21<00:14,  1.11it/s, loss=2.64, v_num=frhy, train_loss_step=2.820, train_acc_step=72.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.390, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 85:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=2.53, v_num=frhy, train_loss_step=2.290, train_acc_step=77.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.140, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 86:  52%|▌| 21/40 [00:18<00:16,  1.14it/s, loss=2.47, v_num=frhy, train_loss_step=2.430, train_acc_step=76.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.060, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 87:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=2.53, v_num=frhy, train_loss_step=2.720, train_acc_step=75.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.680, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 88:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=2.47, v_num=frhy, train_loss_step=2.380, train_acc_step=76.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.921, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 89:  60%|▌| 24/40 [00:21<00:14,  1.11it/s, loss=2.51, v_num=frhy, train_loss_step=2.580, train_acc_step=75.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.030, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 90:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.37, v_num=frhy, train_loss_step=2.410, train_acc_step=76.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.879, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+Epoch 91:  20%|▏| 8/40 [00:07<00:29,  1.09it/s, loss=2.39, v_num=frhy, train_loss_step=2.490, train_acc_step=75.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.410, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 30. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+Epoch 91:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.45, v_num=frhy, train_loss_step=2.220, train_acc_step=78.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.060, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 92:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=2.41, v_num=frhy, train_loss_step=2.430, train_acc_step=74.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.080, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+Epoch 93:  18%|▏| 7/40 [00:06<00:30,  1.09it/s, loss=2.43, v_num=frhy, train_loss_step=2.520, train_acc_step=72.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.070, grad_2.0_norm/model.e
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 103. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+Epoch 93:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.39, v_num=frhy, train_loss_step=2.320, train_acc_step=78.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.110, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 94:  60%|▌| 24/40 [00:21<00:14,  1.11it/s, loss=2.4, v_num=frhy, train_loss_step=2.680, train_acc_step=73.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.859, grad_2.0_norm/model.e
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 95:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.38, v_num=frhy, train_loss_step=2.480, train_acc_step=76.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.030, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 96:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=2.37, v_num=frhy, train_loss_step=2.400, train_acc_step=75.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.890, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 97:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.37, v_num=frhy, train_loss_step=2.330, train_acc_step=77.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.670, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 98:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.29, v_num=frhy, train_loss_step=2.250, train_acc_step=78.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.210, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 99:  57%|▌| 23/40 [00:21<00:15,  1.09it/s, loss=2.29, v_num=frhy, train_loss_step=2.150, train_acc_step=78.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.150, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 100:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.32, v_num=frhy, train_loss_step=2.330, train_acc_step=77.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.360, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 101:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.35, v_num=frhy, train_loss_step=2.240, train_acc_step=79.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.350, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 102:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=2.3, v_num=frhy, train_loss_step=2.450, train_acc_step=76.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.390, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 103:  55%|▌| 22/40 [00:18<00:15,  1.18it/s, loss=2.23, v_num=frhy, train_loss_step=2.220, train_acc_step=77.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.150, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 104:  52%|▌| 21/40 [00:20<00:18,  1.04it/s, loss=2.33, v_num=frhy, train_loss_step=2.270, train_acc_step=78.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.250, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 105:  35%|▎| 14/40 [00:12<00:23,  1.09it/s, loss=2.3, v_num=frhy, train_loss_step=2.250, train_acc_step=78.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.040, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 29. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+Epoch 105:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=2.26, v_num=frhy, train_loss_step=2.070, train_acc_step=79.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.963, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 106:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.18, v_num=frhy, train_loss_step=2.160, train_acc_step=78.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.380, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 107:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=2.24, v_num=frhy, train_loss_step=2.210, train_acc_step=78.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.150, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 108:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.15, v_num=frhy, train_loss_step=2.220, train_acc_step=78.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.260, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 109:  60%|▌| 24/40 [00:21<00:14,  1.11it/s, loss=2.2, v_num=frhy, train_loss_step=2.000, train_acc_step=81.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=18.50, grad_2.0_norm/model.
+
+
+
+
+
+
+Epoch 110:   5%| | 2/40 [00:01<00:36,  1.05it/s, loss=2.17, v_num=frhy, train_loss_step=1.780, train_acc_step=84.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.952, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 88. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+Epoch 110:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.14, v_num=frhy, train_loss_step=1.930, train_acc_step=81.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.810, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 111:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.22, v_num=frhy, train_loss_step=2.250, train_acc_step=78.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.080, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 112:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=2.21, v_num=frhy, train_loss_step=2.000, train_acc_step=82.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.110, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 113:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.19, v_num=frhy, train_loss_step=2.220, train_acc_step=77.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.320, grad_2.0_norm/model
+
+
+
+
+
+
+
+Epoch 114:   8%| | 3/40 [00:02<00:34,  1.07it/s, loss=2.15, v_num=frhy, train_loss_step=2.190, train_acc_step=76.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.260, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 28. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+Epoch 114:  57%|▌| 23/40 [00:21<00:15,  1.08it/s, loss=2.22, v_num=frhy, train_loss_step=2.200, train_acc_step=78.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.050, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 115:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.17, v_num=frhy, train_loss_step=1.970, train_acc_step=81.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.750, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 116:  62%|▋| 25/40 [00:20<00:12,  1.24it/s, loss=2.11, v_num=frhy, train_loss_step=2.220, train_acc_step=79.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.390, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 117:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=2.18, v_num=frhy, train_loss_step=2.170, train_acc_step=78.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.140, grad_2.0_norm/model
+
+
+
+
+
+Epoch 118:   0%| | 0/40 [00:00<?, ?it/s, loss=2.18, v_num=frhy, train_loss_step=2.170, train_acc_step=78.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.140, grad_2.0_norm/model.embeddin
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 116. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+
+Epoch 118:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.12, v_num=frhy, train_loss_step=2.600, train_acc_step=75.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.450, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 119:  57%|▌| 23/40 [00:21<00:15,  1.08it/s, loss=2.11, v_num=frhy, train_loss_step=2.240, train_acc_step=79.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.310, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 120:  55%|▌| 22/40 [00:18<00:15,  1.16it/s, loss=2.08, v_num=frhy, train_loss_step=2.400, train_acc_step=77.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.140, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 121:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=2.03, v_num=frhy, train_loss_step=1.990, train_acc_step=80.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.460, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 122:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.99, v_num=frhy, train_loss_step=2.350, train_acc_step=76.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.340, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 123:  62%|▋| 25/40 [00:20<00:12,  1.23it/s, loss=2.07, v_num=frhy, train_loss_step=2.010, train_acc_step=81.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.280, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 124:  57%|▌| 23/40 [00:21<00:15,  1.09it/s, loss=2.05, v_num=frhy, train_loss_step=2.140, train_acc_step=78.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.170, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 125:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=2.04, v_num=frhy, train_loss_step=2.040, train_acc_step=81.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.952, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 126:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.95, v_num=frhy, train_loss_step=1.770, train_acc_step=83.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.847, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 127:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=2.05, v_num=frhy, train_loss_step=2.390, train_acc_step=75.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.270, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 128:  62%|▋| 25/40 [00:20<00:12,  1.24it/s, loss=1.99, v_num=frhy, train_loss_step=2.000, train_acc_step=81.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.180, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 129:  57%|▌| 23/40 [00:21<00:15,  1.09it/s, loss=2.02, v_num=frhy, train_loss_step=2.060, train_acc_step=80.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.420, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 130:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.96, v_num=frhy, train_loss_step=1.900, train_acc_step=82.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.904, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 131:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=1.95, v_num=frhy, train_loss_step=2.090, train_acc_step=78.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.180, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 132:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.94, v_num=frhy, train_loss_step=1.880, train_acc_step=82.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.330, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 133:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=1.86, v_num=frhy, train_loss_step=1.540, train_acc_step=84.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.872, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 134:  55%|▌| 22/40 [00:20<00:16,  1.07it/s, loss=1.94, v_num=frhy, train_loss_step=2.080, train_acc_step=80.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.640, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 135:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=1.94, v_num=frhy, train_loss_step=1.950, train_acc_step=82.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.520, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 136:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=1.91, v_num=frhy, train_loss_step=2.210, train_acc_step=77.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=2.400, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 137:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.96, v_num=frhy, train_loss_step=1.660, train_acc_step=84.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.200, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 138:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.85, v_num=frhy, train_loss_step=1.990, train_acc_step=80.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.370, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 139:  57%|▌| 23/40 [00:21<00:15,  1.09it/s, loss=1.92, v_num=frhy, train_loss_step=1.760, train_acc_step=81.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.620, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 140:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.85, v_num=frhy, train_loss_step=2.110, train_acc_step=79.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.060, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 141:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=1.86, v_num=frhy, train_loss_step=1.910, train_acc_step=81.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.140, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 142:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.86, v_num=frhy, train_loss_step=2.510, train_acc_step=74.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.550, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 143:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=1.81, v_num=frhy, train_loss_step=1.860, train_acc_step=83.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.270, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 144:  55%|▌| 22/40 [00:20<00:16,  1.06it/s, loss=1.84, v_num=frhy, train_loss_step=1.700, train_acc_step=83.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=2.070, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 145:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.78, v_num=frhy, train_loss_step=1.580, train_acc_step=84.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=2.470, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 146:  52%|▌| 21/40 [00:18<00:16,  1.14it/s, loss=1.79, v_num=frhy, train_loss_step=1.850, train_acc_step=81.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.130, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 147:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.81, v_num=frhy, train_loss_step=1.610, train_acc_step=84.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.170, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 148:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=1.78, v_num=frhy, train_loss_step=1.520, train_acc_step=85.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.090, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 149:  60%|▌| 24/40 [00:21<00:14,  1.10it/s, loss=1.83, v_num=frhy, train_loss_step=1.700, train_acc_step=85.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.480, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 150:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=1.77, v_num=frhy, train_loss_step=1.540, train_acc_step=85.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.020, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 151:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.74, v_num=frhy, train_loss_step=2.010, train_acc_step=81.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.060, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 152:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.76, v_num=frhy, train_loss_step=1.910, train_acc_step=82.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.240, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 153:  62%|▋| 25/40 [00:20<00:12,  1.23it/s, loss=1.72, v_num=frhy, train_loss_step=1.780, train_acc_step=83.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.230, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 154:  57%|▌| 23/40 [00:21<00:15,  1.09it/s, loss=1.7, v_num=frhy, train_loss_step=1.730, train_acc_step=83.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.060, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 155:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.76, v_num=frhy, train_loss_step=1.880, train_acc_step=81.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.100, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 156:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=1.65, v_num=frhy, train_loss_step=1.400, train_acc_step=87.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.060, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 157:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.7, v_num=frhy, train_loss_step=1.700, train_acc_step=83.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.800, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 158:  50%|▌| 20/40 [00:18<00:18,  1.10it/s, loss=1.63, v_num=frhy, train_loss_step=1.910, train_acc_step=83.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.370, grad_2.0_norm/model
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 128. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+Epoch 158:  62%|▋| 25/40 [00:20<00:12,  1.24it/s, loss=1.63, v_num=frhy, train_loss_step=1.910, train_acc_step=83.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.370, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 159:  60%|▌| 24/40 [00:21<00:14,  1.11it/s, loss=1.75, v_num=frhy, train_loss_step=1.480, train_acc_step=87.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.130, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 160:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.69, v_num=frhy, train_loss_step=2.010, train_acc_step=81.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.510, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 161:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=1.72, v_num=frhy, train_loss_step=1.870, train_acc_step=82.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.110, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 162:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=1.69, v_num=frhy, train_loss_step=1.820, train_acc_step=82.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.290, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 163:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=1.68, v_num=frhy, train_loss_step=1.720, train_acc_step=83.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.460, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 164:  57%|▌| 23/40 [00:21<00:15,  1.09it/s, loss=1.72, v_num=frhy, train_loss_step=1.430, train_acc_step=88.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.150, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 165:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.69, v_num=frhy, train_loss_step=1.440, train_acc_step=87.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.020, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 166:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.64, v_num=frhy, train_loss_step=1.700, train_acc_step=83.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.150, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 167:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.63, v_num=frhy, train_loss_step=1.660, train_acc_step=84.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.630, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 168:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=1.64, v_num=frhy, train_loss_step=1.870, train_acc_step=83.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.270, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 169:  57%|▌| 23/40 [00:21<00:15,  1.09it/s, loss=1.64, v_num=frhy, train_loss_step=1.810, train_acc_step=84.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.450, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 170:  40%|▍| 16/40 [00:14<00:21,  1.10it/s, loss=1.62, v_num=frhy, train_loss_step=1.640, train_acc_step=84.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.320, grad_2.0_norm/model
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 221. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 170:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.61, v_num=frhy, train_loss_step=1.560, train_acc_step=84.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.370, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 171:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.6, v_num=frhy, train_loss_step=1.740, train_acc_step=84.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.230, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 172:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=1.64, v_num=frhy, train_loss_step=1.880, train_acc_step=80.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.430, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 173:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.59, v_num=frhy, train_loss_step=1.630, train_acc_step=84.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.030, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 174:  62%|▋| 25/40 [00:22<00:13,  1.13it/s, loss=1.55, v_num=frhy, train_loss_step=1.430, train_acc_step=85.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.620, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 175:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=1.57, v_num=frhy, train_loss_step=1.650, train_acc_step=85.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.170, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 176:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.62, v_num=frhy, train_loss_step=1.600, train_acc_step=85.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.370, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 177:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.58, v_num=frhy, train_loss_step=1.510, train_acc_step=86.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.530, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 178:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.61, v_num=frhy, train_loss_step=1.780, train_acc_step=82.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.680, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 179:  60%|▌| 24/40 [00:21<00:14,  1.11it/s, loss=1.54, v_num=frhy, train_loss_step=1.410, train_acc_step=86.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.040, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 180:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=1.55, v_num=frhy, train_loss_step=1.620, train_acc_step=86.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.110, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 181:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=1.51, v_num=frhy, train_loss_step=1.670, train_acc_step=84.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.040, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 182:  55%|▌| 22/40 [00:18<00:15,  1.16it/s, loss=1.56, v_num=frhy, train_loss_step=1.580, train_acc_step=85.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.120, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 183:  52%|▌| 21/40 [00:18<00:16,  1.14it/s, loss=1.49, v_num=frhy, train_loss_step=1.340, train_acc_step=87.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.440, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 184:  57%|▌| 23/40 [00:21<00:15,  1.08it/s, loss=1.56, v_num=frhy, train_loss_step=1.390, train_acc_step=87.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.240, grad_2.0_norm/model
+
+
+
+
+
+
+Epoch 185:   5%| | 2/40 [00:01<00:36,  1.03it/s, loss=1.57, v_num=frhy, train_loss_step=1.480, train_acc_step=86.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.280, grad_2.0_norm/model.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 101. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+
+
+
+
+
+Epoch 185:  52%|▌| 21/40 [00:18<00:16,  1.14it/s, loss=1.55, v_num=frhy, train_loss_step=1.710, train_acc_step=83.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.250, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 186:  57%|▌| 23/40 [00:19<00:14,  1.19it/s, loss=1.53, v_num=frhy, train_loss_step=1.570, train_acc_step=85.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.480, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 187:  52%|▌| 21/40 [00:18<00:16,  1.14it/s, loss=1.54, v_num=frhy, train_loss_step=1.410, train_acc_step=87.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.240, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 188:  60%|▌| 24/40 [00:19<00:13,  1.21it/s, loss=1.51, v_num=frhy, train_loss_step=1.450, train_acc_step=87.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.913, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 189:  52%|▌| 21/40 [00:20<00:18,  1.04it/s, loss=1.53, v_num=frhy, train_loss_step=1.400, train_acc_step=87.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.250, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 190:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.48, v_num=frhy, train_loss_step=1.530, train_acc_step=87.40, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.750, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 191:  55%|▌| 22/40 [00:18<00:15,  1.17it/s, loss=1.5, v_num=frhy, train_loss_step=1.480, train_acc_step=86.10, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.190, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 192:  52%|▌| 21/40 [00:18<00:16,  1.14it/s, loss=1.5, v_num=frhy, train_loss_step=1.560, train_acc_step=86.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.030, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 193:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.5, v_num=frhy, train_loss_step=1.590, train_acc_step=84.50, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.800, grad_2.0_norm/model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 194:  57%|▌| 23/40 [00:21<00:15,  1.09it/s, loss=1.51, v_num=frhy, train_loss_step=1.260, train_acc_step=88.70, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.929, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 195:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=1.41, v_num=frhy, train_loss_step=1.220, train_acc_step=89.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.862, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 196:  60%|▌| 24/40 [00:19<00:13,  1.22it/s, loss=1.54, v_num=frhy, train_loss_step=1.760, train_acc_step=82.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.680, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 197:  57%|▌| 23/40 [00:19<00:14,  1.20it/s, loss=1.42, v_num=frhy, train_loss_step=1.380, train_acc_step=87.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.170, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 198:  52%|▌| 21/40 [00:18<00:16,  1.15it/s, loss=1.45, v_num=frhy, train_loss_step=1.370, train_acc_step=88.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.250, grad_2.0_norm/model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 199:  60%|▌| 24/40 [00:21<00:14,  1.12it/s, loss=1.37, v_num=frhy, train_loss_step=1.520, train_acc_step=85.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=3.400, grad_2.0_norm/model
+
+
+
+
+
+Epoch 199: 100%|█| 40/40 [00:31<00:00,  1.28it/s, loss=1.37, v_num=frhy, train_loss_step=1.520, train_acc_step=85.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=3.400, grad_2.0_norm/model

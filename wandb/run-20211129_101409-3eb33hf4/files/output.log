@@ -1,0 +1,185 @@
+[34m[1mwandb[39m[22m: logging graph, to disable use `wandb.watch(log_graph=False)`
+Global seed set to 808
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/core/datamodule.py:469: LightningDeprecationWarning: DataModule.setup has already been called, so it will not be called again. In v1.6 this behavior will change to always call DataModule.setup.
+  rank_zero_deprecation(
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Beginning training run with #5120 from mscoco_train for #20 epochs...
+  | Name                 | Type                       | Params
+--------------------------------------------------------------------
+0 | model                | VisualBertModel            | 111 M
+1 | text_prediction_head | VisualBertLMPredictionHead | 24.1 M
+2 | seq_relationship     | Linear                     | 1.5 K
+3 | transform_img_ft     | Linear                     | 2.1 M
+4 | transform_img_box    | Linear                     | 10.2 K
+5 | transform_ln_ft      | LayerNorm                  | 4.1 K
+6 | transform_ln_box     | LayerNorm                  | 4.1 K
+--------------------------------------------------------------------
+137 M     Trainable params
+0         Non-trainable params
+137 M     Total params
+550.533   Total estimated model params size (MB)
+Validation sanity check:   0%|                                                                                                                                                                 | 0/2 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+Epoch 0:  52%|▌| 21/40 [00:18<00:17,  1.11it/s, loss=9.12, v_num=3hf4, train_loss_step=8.360, train_acc_step=13.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.0339, grad_2.0_norm/model.embeddings
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 1:  52%|▌| 21/40 [00:19<00:17,  1.08it/s, loss=7.59, v_num=3hf4, train_loss_step=6.050, train_acc_step=43.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.594, grad_2.0_norm/model.embeddings.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 2:  52%|▌| 21/40 [00:19<00:17,  1.07it/s, loss=5.9, v_num=3hf4, train_loss_step=5.360, train_acc_step=46.00, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=1.300, grad_2.0_norm/model.embeddings.p
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 3:  52%|▌| 21/40 [00:19<00:17,  1.08it/s, loss=5.94, v_num=3hf4, train_loss_step=6.750, train_acc_step=30.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=4.530, grad_2.0_norm/model.embeddings.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 4:  52%|▌| 21/40 [00:19<00:17,  1.07it/s, loss=7.57, v_num=3hf4, train_loss_step=8.420, train_acc_step=13.20, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.0018, grad_2.0_norm/model.embeddings
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 5:  57%|▌| 23/40 [00:21<00:15,  1.09it/s, loss=8.31, v_num=3hf4, train_loss_step=8.120, train_acc_step=16.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.0001, grad_2.0_norm/model.embeddings
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 6:  52%|▌| 21/40 [00:19<00:17,  1.07it/s, loss=8.32, v_num=3hf4, train_loss_step=8.230, train_acc_step=14.60, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.0001, grad_2.0_norm/model.embeddings
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 7:  55%|▌| 22/40 [00:20<00:17,  1.05it/s, loss=8.35, v_num=3hf4, train_loss_step=8.210, train_acc_step=15.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.0001, grad_2.0_norm/model.embeddings
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 8:  52%|▌| 21/40 [00:19<00:18,  1.05it/s, loss=8.3, v_num=3hf4, train_loss_step=8.260, train_acc_step=16.30, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.000, grad_2.0_norm/model.embeddings.p
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 9:  52%|▌| 21/40 [00:20<00:18,  1.01it/s, loss=8.27, v_num=3hf4, train_loss_step=8.150, train_acc_step=14.90, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.000, grad_2.0_norm/model.embeddings.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 10:  52%|▌| 21/40 [00:20<00:18,  1.05it/s, loss=8.23, v_num=3hf4, train_loss_step=8.410, train_acc_step=13.80, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.0001, grad_2.0_norm/model.embedding
+
+

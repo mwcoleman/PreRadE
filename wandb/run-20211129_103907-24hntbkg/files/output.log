@@ -1,0 +1,199 @@
+
+Beginning training run with #5120 from mscoco_train for #20 epochs...
+[34m[1mwandb[39m[22m: logging graph, to disable use `wandb.watch(log_graph=False)`
+Global seed set to 808
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/core/datamodule.py:469: LightningDeprecationWarning: DataModule.setup has already been called, so it will not be called again. In v1.6 this behavior will change to always call DataModule.setup.
+  rank_zero_deprecation(
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+  | Name                 | Type                       | Params
+--------------------------------------------------------------------
+0 | model                | VisualBertModel            | 111 M
+1 | text_prediction_head | VisualBertLMPredictionHead | 24.1 M
+2 | seq_relationship     | Linear                     | 1.5 K
+3 | transform_img_ft     | Linear                     | 2.1 M
+4 | transform_img_box    | Linear                     | 10.2 K
+5 | transform_ln_ft      | LayerNorm                  | 4.1 K
+6 | transform_ln_box     | LayerNorm                  | 4.1 K
+--------------------------------------------------------------------
+137 M     Trainable params
+0         Non-trainable params
+137 M     Total params
+550.533   Total estimated model params size (MB)
+Global seed set to 808
+
+
+
+
+
+Epoch 0:  50%|████████████████████████████████████████████████████████████████████▌                                                                    | 20/40 [00:11<00:11,  1.78it/s, loss=9.67, v_num=tbkg, train_loss_step=8.580, train_acc_step=13.90]
+
+
+
+
+
+
+
+Epoch 1:  50%|███   | 20/40 [00:10<00:10,  1.83it/s, loss=8.08, v_num=tbkg, train_loss_step=7.150, train_acc_step=32.50, val_loss_step=8.530, val_acc_step=16.00, val_loss_epoch=8.560, val_acc_epoch=14.40, train_loss_epoch=9.670, train_acc_epoch=9.180]
+
+
+
+
+
+
+
+
+Epoch 2:  50%|███   | 20/40 [00:11<00:11,  1.82it/s, loss=6.89, v_num=tbkg, train_loss_step=6.220, train_acc_step=39.20, val_loss_step=7.380, val_acc_step=30.50, val_loss_epoch=7.310, val_acc_epoch=30.00, train_loss_epoch=8.080, train_acc_epoch=20.90]
+
+
+
+
+
+
+
+Epoch 3:  50%|███   | 20/40 [00:10<00:10,  1.82it/s, loss=5.88, v_num=tbkg, train_loss_step=5.800, train_acc_step=44.40, val_loss_step=6.100, val_acc_step=39.30, val_loss_epoch=6.280, val_acc_epoch=37.70, train_loss_epoch=6.890, train_acc_epoch=34.00]
+
+
+
+
+
+
+
+
+
+Epoch 4:  60%|███▌  | 24/40 [00:12<00:08,  1.90it/s, loss=5.46, v_num=tbkg, train_loss_step=5.280, train_acc_step=48.90, val_loss_step=5.290, val_acc_step=48.90, val_loss_epoch=5.640, val_acc_epoch=44.00, train_loss_epoch=5.880, train_acc_epoch=43.00]
+
+
+
+
+
+
+
+Epoch 5:  60%|███▌  | 24/40 [00:12<00:08,  1.92it/s, loss=5.09, v_num=tbkg, train_loss_step=4.700, train_acc_step=54.10, val_loss_step=4.900, val_acc_step=52.70, val_loss_epoch=5.240, val_acc_epoch=47.30, train_loss_epoch=5.460, train_acc_epoch=46.70]
+
+
+
+
+
+
+
+
+Epoch 6:  55%|███▎  | 22/40 [00:12<00:09,  1.81it/s, loss=4.97, v_num=tbkg, train_loss_step=4.570, train_acc_step=54.50, val_loss_step=5.160, val_acc_step=46.30, val_loss_epoch=5.070, val_acc_epoch=48.90, train_loss_epoch=5.090, train_acc_epoch=49.90]
+
+
+
+
+
+
+
+Epoch 7:  55%|███▎  | 22/40 [00:12<00:09,  1.82it/s, loss=4.81, v_num=tbkg, train_loss_step=4.550, train_acc_step=55.60, val_loss_step=4.780, val_acc_step=53.60, val_loss_epoch=4.890, val_acc_epoch=50.10, train_loss_epoch=4.970, train_acc_epoch=50.50]
+
+
+
+
+
+
+
+
+Epoch 8:  50%|███   | 20/40 [00:11<00:11,  1.82it/s, loss=4.68, v_num=tbkg, train_loss_step=4.710, train_acc_step=52.10, val_loss_step=4.350, val_acc_step=56.20, val_loss_epoch=4.710, val_acc_epoch=52.30, train_loss_epoch=4.810, train_acc_epoch=52.70]
+
+
+
+
+
+
+
+
+Epoch 9:  60%|███▌  | 24/40 [00:12<00:08,  1.87it/s, loss=4.46, v_num=tbkg, train_loss_step=4.170, train_acc_step=58.60, val_loss_step=4.590, val_acc_step=53.10, val_loss_epoch=4.690, val_acc_epoch=52.20, train_loss_epoch=4.680, train_acc_epoch=53.50]
+
+
+
+
+
+
+
+
+Epoch 10:  55%|██▊  | 22/40 [00:12<00:10,  1.78it/s, loss=4.35, v_num=tbkg, train_loss_step=4.640, train_acc_step=53.30, val_loss_step=4.530, val_acc_step=53.40, val_loss_epoch=4.500, val_acc_epoch=54.20, train_loss_epoch=4.460, train_acc_epoch=55.50]
+
+
+
+
+
+
+
+Epoch 11:  50%|██▌  | 20/40 [00:10<00:10,  1.82it/s, loss=4.27, v_num=tbkg, train_loss_step=4.240, train_acc_step=58.60, val_loss_step=4.330, val_acc_step=53.50, val_loss_epoch=4.450, val_acc_epoch=54.70, train_loss_epoch=4.350, train_acc_epoch=56.70]
+
+
+
+
+
+
+
+
+
+Epoch 12:  55%|██▊  | 22/40 [00:12<00:09,  1.82it/s, loss=4.22, v_num=tbkg, train_loss_step=4.400, train_acc_step=55.10, val_loss_step=4.290, val_acc_step=58.40, val_loss_epoch=4.420, val_acc_epoch=55.00, train_loss_epoch=4.270, train_acc_epoch=57.70]
+
+
+
+
+
+
+
+Epoch 13:  55%|██▊  | 22/40 [00:12<00:09,  1.83it/s, loss=4.17, v_num=tbkg, train_loss_step=4.280, train_acc_step=57.40, val_loss_step=4.000, val_acc_step=57.90, val_loss_epoch=4.320, val_acc_epoch=55.90, train_loss_epoch=4.220, train_acc_epoch=57.80]
+
+
+
+
+
+
+
+
+Epoch 14:  55%|██▊  | 22/40 [00:12<00:10,  1.77it/s, loss=4.08, v_num=tbkg, train_loss_step=3.730, train_acc_step=62.90, val_loss_step=3.980, val_acc_step=59.70, val_loss_epoch=4.270, val_acc_epoch=56.20, train_loss_epoch=4.170, train_acc_epoch=58.70]
+
+
+
+
+
+
+
+Epoch 15:  55%|██▊  | 22/40 [00:11<00:09,  1.85it/s, loss=3.99, v_num=tbkg, train_loss_step=4.030, train_acc_step=58.10, val_loss_step=3.950, val_acc_step=60.60, val_loss_epoch=4.280, val_acc_epoch=56.00, train_loss_epoch=4.080, train_acc_epoch=59.40]
+
+
+
+
+
+
+
+Epoch 16:  50%|████    | 20/40 [00:11<00:11,  1.75it/s, loss=4, v_num=tbkg, train_loss_step=4.000, train_acc_step=60.40, val_loss_step=4.250, val_acc_step=55.10, val_loss_epoch=4.300, val_acc_epoch=55.70, train_loss_epoch=3.990, train_acc_epoch=60.60]
+
+
+
+
+
+
+
+Epoch 17:  50%|██▌  | 20/40 [00:10<00:10,  1.84it/s, loss=3.84, v_num=tbkg, train_loss_step=3.830, train_acc_step=61.70, val_loss_step=3.740, val_acc_step=63.60, val_loss_epoch=4.200, val_acc_epoch=56.70, train_loss_epoch=4.000, train_acc_epoch=60.30]
+
+
+
+
+
+
+
+
+
+Epoch 18:  60%|███  | 24/40 [00:12<00:08,  1.94it/s, loss=3.98, v_num=tbkg, train_loss_step=4.160, train_acc_step=58.90, val_loss_step=3.850, val_acc_step=59.80, val_loss_epoch=4.190, val_acc_epoch=57.20, train_loss_epoch=3.840, train_acc_epoch=61.80]
+
+
+
+
+
+
+
+Epoch 19:  60%|███  | 24/40 [00:12<00:08,  1.93it/s, loss=3.81, v_num=tbkg, train_loss_step=4.050, train_acc_step=60.70, val_loss_step=4.010, val_acc_step=58.80, val_loss_epoch=4.100, val_acc_epoch=57.80, train_loss_epoch=3.980, train_acc_epoch=60.90]
+
+
+
+Epoch 19: 100%|█████| 40/40 [00:22<00:00,  1.75it/s, loss=3.81, v_num=tbkg, train_loss_step=4.050, train_acc_step=60.70, val_loss_step=4.440, val_acc_step=54.40, val_loss_epoch=4.160, val_acc_epoch=57.30, train_loss_epoch=3.980, train_acc_epoch=60.90]

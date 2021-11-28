@@ -1,0 +1,31 @@
+[34m[1mwandb[39m[22m: logging graph, to disable use `wandb.watch(log_graph=False)`
+Global seed set to 808
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+Running in fast_dev_run mode: will run a full train, val, test and prediction loop using 1 batch(es).
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/core/datamodule.py:469: LightningDeprecationWarning: DataModule.setup has already been called, so it will not be called again. In v1.6 this behavior will change to always call DataModule.setup.
+  rank_zero_deprecation(
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Beginning training run with #512 from mscoco_train for #10 epochs...
+  | Name                 | Type                       | Params
+--------------------------------------------------------------------
+0 | model                | VisualBertModel            | 111 M
+1 | text_prediction_head | VisualBertLMPredictionHead | 24.1 M
+2 | seq_relationship     | Linear                     | 1.5 K
+3 | transform_img_ft     | Linear                     | 2.1 M
+4 | transform_img_box    | Linear                     | 10.2 K
+5 | transform_ln_ft      | LayerNorm                  | 4.1 K
+6 | transform_ln_box     | LayerNorm                  | 4.1 K
+--------------------------------------------------------------------
+137 M     Trainable params
+0         Non-trainable params
+137 M     Total params
+550.533   Total estimated model params size (MB)
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:623: UserWarning: Checkpoint directory /media/matt/data21/mmRad/checkpoints exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:407: UserWarning: The number of training samples (1) is smaller than the logging interval Trainer(log_every_n_steps=10). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+  rank_zero_warn(
+Epoch 0:  50%|▌| 1/2 [00:02<00:02,  2.06s/it, loss=10.4, v_num=, train_loss_step=10.40, train_acc_step=0.000, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.299, grad_2.0_norm/model.embeddings.positi
+
+Validating:   0%|                                                                                                                                                                              | 0/1 [00:00<?, ?it/s]

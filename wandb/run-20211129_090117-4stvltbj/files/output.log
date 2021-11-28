@@ -1,0 +1,76 @@
+Beginning training run with #5120 from mscoco_train for #10 epochs...
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv
+[34m[1mwandb[39m[22m: logging graph, to disable use `wandb.watch(log_graph=False)`
+Global seed set to 808
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+Loaded 5120 images in file /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv in 8 seconds.
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loaded 5000 images in file /media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv in 8 seconds.
+Epoch 0:   0%|                                                                                                                                                                                | 0/40 [00:00<?, ?it/s]
+  | Name                 | Type                       | Params
+--------------------------------------------------------------------
+0 | model                | VisualBertModel            | 111 M
+1 | text_prediction_head | VisualBertLMPredictionHead | 24.1 M
+2 | seq_relationship     | Linear                     | 1.5 K
+3 | transform_img_ft     | Linear                     | 2.1 M
+4 | transform_img_box    | Linear                     | 10.2 K
+5 | transform_ln_ft      | LayerNorm                  | 4.1 K
+6 | transform_ln_box     | LayerNorm                  | 4.1 K
+--------------------------------------------------------------------
+137 M     Trainable params
+0         Non-trainable params
+137 M     Total params
+550.533   Total estimated model params size (MB)
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:623: UserWarning: Checkpoint directory /media/matt/data21/mmRad/checkpoints exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:111: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+Global seed set to 808
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:111: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+
+Epoch 0:   5%| | 2/40 [00:01<00:37,  1.01it/s, loss=10.5, v_num=ltbj, train_loss_step=10.50, train_acc_step=0.000, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.298, grad_2.0_norm/model.embeddings.p
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 45. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 66. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  12%|▏| 5/40 [00:04<00:31,  1.12it/s, loss=10.5, v_num=ltbj, train_loss_step=10.50, train_acc_step=0.000, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.312, grad_2.0_norm/model.embeddings.p
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 56. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 43. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  18%|▏| 7/40 [00:06<00:28,  1.14it/s, loss=10.5, v_num=ltbj, train_loss_step=10.50, train_acc_step=0.000, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.281, grad_2.0_norm/model.embeddings.p
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 53. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 52. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 69. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 46. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 65. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  25%|▎| 10/40 [00:08<00:25,  1.16it/s, loss=10.5, v_num=ltbj, train_loss_step=10.50, train_acc_step=0.000, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.319, grad_2.0_norm/model.embeddings.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 42. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  30%|▎| 12/40 [00:10<00:24,  1.17it/s, loss=10.5, v_num=ltbj, train_loss_step=10.50, train_acc_step=0.000, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.312, grad_2.0_norm/model.embeddings.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 40. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 61. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 50. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+
+Epoch 0:  42%|▍| 17/40 [00:14<00:19,  1.18it/s, loss=10.5, v_num=ltbj, train_loss_step=10.50, train_acc_step=0.000, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.373, grad_2.0_norm/model.embeddings.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 37. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+  warning_cache.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 32. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+
+Epoch 0:  48%|▍| 19/40 [00:16<00:17,  1.18it/s, loss=10.5, v_num=ltbj, train_loss_step=10.50, train_acc_step=0.000, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.302, grad_2.0_norm/model.embeddings.
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/utilities/data.py:59: UserWarning: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 55. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+Epoch 0:  60%|▌| 24/40 [00:18<00:12,  1.31it/s, loss=10.5, v_num=ltbj, train_loss_step=10.50, train_acc_step=0.000, grad_2.0_norm/model.embeddings.word_embeddings.weight_step=0.285, grad_2.0_norm/model.embeddings.
+
+
+

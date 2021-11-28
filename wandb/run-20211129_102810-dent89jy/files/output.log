@@ -1,0 +1,352 @@
+
+Beginning training run with #5120 from mscoco_train for #20 epochs...
+[34m[1mwandb[39m[22m: logging graph, to disable use `wandb.watch(log_graph=False)`
+Global seed set to 808
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/core/datamodule.py:469: LightningDeprecationWarning: DataModule.setup has already been called, so it will not be called again. In v1.6 this behavior will change to always call DataModule.setup.
+  rank_zero_deprecation(
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+  | Name                 | Type                       | Params
+--------------------------------------------------------------------
+0 | model                | VisualBertModel            | 111 M
+1 | text_prediction_head | VisualBertLMPredictionHead | 24.1 M
+2 | seq_relationship     | Linear                     | 1.5 K
+3 | transform_img_ft     | Linear                     | 2.1 M
+4 | transform_img_box    | Linear                     | 10.2 K
+5 | transform_ln_ft      | LayerNorm                  | 4.1 K
+6 | transform_ln_box     | LayerNorm                  | 4.1 K
+--------------------------------------------------------------------
+137 M     Trainable params
+0         Non-trainable params
+137 M     Total params
+550.533   Total estimated model params size (MB)
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:623: UserWarning: Checkpoint directory /media/matt/data21/mmRad/checkpoints exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+
+Epoch 0:   0%|                                                                                                                                                                                | 0/40 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+
+
+Epoch 0:  50%|█████████████████████████████████████████████████▌                                                 | 20/40 [00:47<00:47,  2.37s/it, loss=8.98, v_num=89jy, train_loss_step=7.340, train_acc_step=32.10]
+
+
+
+
+
+
+
+
+
+
+
+Epoch 1:  50%|▌| 20/40 [00:15<00:15,  1.31it/s, loss=6.52, v_num=89jy, train_loss_step=5.430, train_acc_step=49.90, val_loss_step=7.110, val_acc_step=35.70, val_loss_epoch=7.320, val_acc_epoch=31.80, train_loss_ep
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 2:  55%|▌| 22/40 [00:16<00:13,  1.32it/s, loss=5.73, v_num=89jy, train_loss_step=5.600, train_acc_step=44.40, val_loss_step=5.520, val_acc_step=46.90, val_loss_epoch=5.770, val_acc_epoch=43.50, train_loss_ep
+
+
+
+
+
+
+
+
+
+
+
+Epoch 3:  50%|▌| 20/40 [00:15<00:15,  1.31it/s, loss=5.87, v_num=89jy, train_loss_step=6.410, train_acc_step=35.50, val_loss_step=5.140, val_acc_step=51.10, val_loss_epoch=5.590, val_acc_epoch=44.40, train_loss_ep
+
+
+
+
+
+
+
+
+
+
+
+Epoch 4:  38%|▍| 15/40 [00:29<00:49,  1.99s/it, loss=6.93, v_num=89jy, train_loss_step=7.860, train_acc_step=23.40, val_loss_step=5.540, val_acc_step=4                                                              Hollywood Boulevard seems smaller when looking at this street sign
+People in a large room, use multiple computers.
+A sidewalk with a fire hydrant, poles, and people walking.
+A bathroom has gold wall and brown counters.
+A sink of a bathroom with things on the counter
+Shot of bottom side of jet flying against a blue sky
+Two children look at an old, black steam engine.
+A traffic signal sitting on the corner of a street.
+the door with door handles of a train car
+two baby kittens at the feeding bowls one is drinking
+a red desk chair in a small room
+A woman on a bench reading a book
+a bath room with a bath tub a window and tiled floors
+Individual sitting on a bench at a valley with storm clouds over head.
+A man riding an elephant into some water of a creek.
+Toilet with blue rug and blue rug cover saying please do not use. Sorry!
+A toilet with a case of toilet paper on top.
+A hood lifted on a Chevrolet vehicle with a teddy bear on the side.
+Giraffes and zebra watching a zookeeper in their enclosure.
+A wooden bench sitting in a park surrounded by trees.
+a toilet with a raised seats and controls on a side arm.
+A large tower that has a weather vain at the top.
+A toilet is just inside a bathroom doorway.
+A large group of people sitting at tables with umbrellas.
+Black and white photograph of a vase in display case.
+A person sits on a bench outdoors next to shrubbery typing on a laptop.
+A large kitchen has gray counters and brown cabinets.
+A kitchen with a stainless steel stove.and white cabinets.
+a kitchen with a stove a refrigerator and a microwave
+A bike parked up against the side of a pole.
+A picture of a group of fighter jets flying together.
+A snow covered city street featuring a red fire hydrant
+a open kitchen with white color and wood
+A woman rides a bicycle on a road next to the median.
+A cat laying inside of a white sink under a faucet.
+A black and white image of a bicyclist behind a wall.
+An elderly man and woman sitting outside next to a table.
+A street light has a street sign at the top of its pole.
+A bathroom with a white tub and a white sink.
+This is a picture of traffic on a very busy street.
+A traffic signal sitting next to a street at night.
+An old airplane on a corner of the runway.
+a person standing in a stone walled and floored room wearing a backpack
+The kitchen is clean and ready to be used.
+a male and female are sitting together on a train
+Two young men are looking at a computer screen.
+A red and white airplane is on the runway.
+An empty bench on an empty sidewalk in front of some shops.
+A red stop sign sitting next to country road.
+A man flying through the air while riding a surfboard.
+A white toilet next to a walk in shower and a sink.
+A brightly colored fire hydrant sits beside a brightly colored curb.
+This bathroom has brown counter tops and a white toilet
+The girl is wearing a girl scout uniform and firing a tiny cannon between the fenceposts.
+A toilet room in the process of being renovated
+The electronic stop sign glows brightly at night time.
+A cop riding on the back of a motorcycle down a street.
+A motorcycle parked on a sidewalk with a man in the background.
+A blurry motion picture of a person doing a wheelie on a motorcycle.
+A person in a hood looking at a pair of birds on a rail.
+An intracately designed boat on a river bank.
+A long marble like bath room vanity with a stool, two sink basins with mirrors and lights over them
+A before and after shot of a bathroom including a toilet seat cover change.
+A lone giraffe walking in an open field.
+Brown and white cat laying its head over couch.
+a commercial jet airliner as seen from below
+A red light is glaring over the toilet.
+A laptop computer sitting on a desk in a white room.
+A man is on a motorcycle with a woman riding behind him.
+A refrigerator that is in a kitchen next to granite counter tops.
+A bathroom area with a tub, sink and wooden floor.
+A child's play kitchen right next to a real kitchen.
+A group of cars parked in a lot behind buildings.
+a back ally neighborhood with motor bikes in a row
+A kitchen with stainless steel appliances and counters.
+A colorful clock tower sitting int he middle of a parking lot.
+A plane flying through a clear sky can be seen from the bottom.
+The toilet space walls are tiled in black and white
+A clock is shown on the side of a building.
+A dog is sitting on a bench by corn and hay.
+A woman holding a yellow umbrella next to a cathedral.
+An opened box of four chocolate bananas.
+There are two sinks in a long bathroom countertop.
+Liquid dark chocolate being poured over a white cake
+a living room with a couch a chair and a tv
+Flocks of seagulls are at the seashore with flamingos standing in the shallow water.
+THIS IS A PHOTO LOOKING DOWN ON A TOILET
+A couple of zebra walking next to a giraffe on a lush green field.
+A car is parked next to a meter.
+A train that is going by some grass.
+Two birds going up the back of a giraffe.
+A girl in a scout uniform playing with a toy by a fence.
+A litter box sits on the floor of this small bathroom.
+A PICTURE OF A BATHROOM WITH SLIDING SHOWER
+A man sitting on a couch in a hotel room that also has a bed and desk.
+A couple of sinks and mirrors in a room.
+A small black bird standing in snow bedside a small lawn figurine
+A red train that along with people will transport bicycles and is wheelchair accessible.
+Many people walk down a busy street at night.
+A costumed person is sitting on a bench while a photographer leans over them to take a photo.
+A toilet that has its seat up and water inside.
+A small and clean bathroom thanks is in someone's house.
+A group of people standing around a kitchen preparing food.
+Two planes are flying in unison with each other.
+A bathroom is shown with a toilet, sink, and shower.
+A kitchen has a stainless steel sink island.
+Small kitchen with white appliances and white cabinets.
+A boy sitting next to a race car cake.
+A toilet and two rolls of toilet paper in a small room with ledge and window.
+A man doing stunts on his motorcycle at a show.
+Lime green walls in a clean home kitchen
+A woman standing by a building with a cell phone.
+an image of a boy on his bike riding past a building
+A white and black stove with a pot and spoon on it.
+A kitchen with a wooden table  with a cat sleeping on top of it.
+A traffic light hanging on the side of a building.
+This bathroom has plenty of stalls and a couple of sinks.
+A woman on a motorcycle in the middle of the street.
+a street sign attached to a metal pole next to a street.
+A late with cake, ice cream and two spoons on it.
+A bathroom with a shower, toilet and sink.
+Overhead view of traffic lights on pole above top of building.
+A large bathroom with cabinets, mirrors and a tub.
+Two people stand outside of a very old building.
+A fire hydrant is placed in a wooded area
+A man on the road next to a train on the tracks.
+A zoo keeper walks away as a zebra and giraffes follow her.
+A bright orange sign showing the way to a detour.
+Several people board a bus carrying bikes on the front of it
+A room with a mirror, sink, cabinets and towels.
+A tiled bathroom with a potted plant as a center piece.
+A red training riding by some trees and grass.
+The inside of a church with wooden pews and a stained glass window.
+A automobile with multiple bicycles on a roof rack.
+a big jumbo plane flying through the air
+People standing at a train station as a train is approaching.
+The zebras and giraffes are running threw the fields.
+A black man is taking a mirror selfie
+A house with no furniture and only a few chairs.
+two giraffes are standing neck to neck in their pen at the zoo
+a giraffe in its pen and rocks and a building
+there are fur apples that are in the bowl on the table
+THERE IS AN ADULT CAT THAT IS LYING DOWN IN THE SINK
+A cat on a red sheet is right under a bicycle wheel.
+The women is taking a picture of the tall giraffe.
+a parking lot filled with many buses and some trees
+A motorcyclist surveys the sunlit road into the horizon.
+A computer desk with various monitors and speakers.
+Two sinks sitting under a bathroom mirror under lights.
+Recyclable material in garbage bags are left outside.
+An empty bench facing a pond in a park.
+An empty public bathroom with a row sinks and yellow walls.
+Small white toilet sitting in a small corner next to a wall.
+A boy is on a bicycle next to a red bench.
+An odd bathroom with stone walls, and two rolls of toilet paper
+An office with a desk and chair with the door open.
+Two ovens are stacked up in the frame work of the kitchen with a microwave next to bottom one.
+a small child sitting on a toilet in a bathroom
+A man is talking on the phone on the kitchen.
+A woman holding shears in one hand a tile in the other.
+A white dresser with an attached mirror in a room with yellow walls.
+Blurred image of motorized scooters on a wooded road.
+A bathroom with a toilet paper holder on each side of the toilet.
+a car that is parked next to a fire hydrogen
+a girl that is taking a picture of herself
+A bathroom has a red circular rug by the toilet.
+A bathroom with mirrored doors and a large mirror.
+A woman takes a selfie in front of a bathroom mirror.
+Man taking a picture above an art display of a man on a bench.
+A toilet with a hammer on it in a small room.
+A stop sign has a language that is not english.
+A bathroom with a black sink counter next to a white toilet.
+A street with a statue in the middle of a man holding two lights.
+People walk in a parking lot as a site appears to have been rolled over by one of the huge boulders.
+a kitchen cluttered with cups and house plants
+A Union Pacific engine pulls its train around the bend.
+A crude latrine with a stone sink and toilet seat area.
+A man sits on the sidewalk next to a police motorcycle with a police officer in the background.
+A person is looking in the mirror of a motor bike
+An all white bathroom with a shower, toilet and sink.
+Bathroom with many towels hanging to dry out.
+A toilet with a spray hose attached to it sits in a white bathroom.
+There is a small white toilet in the corner
+a kitchen with a stove and a sink and plates
+An older man sitting on a park bench.
+A tall building in the background with the number 9000 on a sign.
+a bathroom with pink tiles on the wall and wooden cabinets.
+The underside of a passenger airliner taking off.
+A light rail train has stopped at a station in the city.
+a small red and white toy plane in the grass
+A restroom with a toilet and a mirror.
+A train is stopped in a forested area.
+A man sits beneath an umbrella in an outdoor patio.
+A spotted glass bowl contains spoons and broccoli.
+The motor cycle is setting on the hill over looking the water.
+A picture of a TV on top of another TV.
+A blue race car bed sits in the center of a room decorated with other types of racing decor.
+A red train with a bike painted on the side.
+A virtual dinning with with tables chairs and plates.
+A person walking past a bunch of red neck ties.
+A crowd stands around motorcycles parked beside each other.
+A few people sitting on a bench feed the birds
+A cat laying on top of a counter looking down.
+A sheep is nestled under a hanging feeder to create the effect that he is carrying a ladder.
+a person in a bathroom having a reflection in the mirror
+three stop lights hanging high up in the air
+A giraffe is chewing a mouthful of grass.
+A VW bus parked at a park picnic
+A kid is to blow out the single candle in a bowl of birthday goodness.
+Downhill Skiier traveling on steep slope of snow
+a large air plane on a run way
+A giraffe standing next to a covered structure.
+A bathroom is shown with a sink and toilet.
+A bird is standing in the grass.
+a jet airplane in the air in between two jet streams
+A row of parked motorcycles sitting next to a tall building.
+A large dog sitting in front of a sliding glass door.
+A fire hydrant in front of a graffitti written brick wall.
+A pigeon greets three bicyclists on a park path
+A green slated park bench under a tree.
+A bathroom that looks incomplete and has concrete walls.
+A stuffed animal sitting on a table, with oranges behind it.
+A street sign that reads broadway on  a traffic light.
+A bathroom with a tub, toilet and a sink.
+A double sinked bathroom has circular twig wreaths hanging above.
+The sink next to the small toilet is very dirty.
+A modern looking bathroom has a toilet and a sink.
+Wooden spoons and forks are all over a table.
+A man riding on a bicycle on a sidewalk
+A man is carrying a large object across the street.
+A cat looks up as it stands in the bathroom sink.
+A large airplane flying through a cloudy sky.
+a person riding a motorcycle on a city street
+A sheep sniffing the back of a cat in the snow.
+A man who is sitting at a table.
+A kitchen filled with lots of dogs near a dishwasher.
+A cat standing on a toilet with an open lid.
+An old warplane is on display in a field.
+a crowded field with a woman throwing a frisbee in the foreground
+A black and white photo of a clock on a tower.
+a little boy wearing headphones and looking at a computer monitor
+A woman holding a travel bag in a crowd of people passing by her.
+Pretty young girl in white tank top sitting in grass by fire hydrant
+there is a woman that is cutting a white cake
+Four jets are flying high in the blue sky.
+A kitchen area with a cooler and container stacked on the floor and a man getting an item out of a cabinet.
+A person on a motorcycle driving around a racetrack.
+A bike parked in front of a book shelf.
+Dish towels hang from a stove handle in a kitchen with wooden cabinets.
+A white toilet sitting next to a trash can.
+A toilet facility in a stone cell on a plank floor.
+very many cyclists on the race with helmets on
+A white sink and toilet in a small room.
+A green painted bench sitting underneath a tree.
+A crystal bowl filled with oranges on top of a table.
+Two bird that are looking inside of a car.
+
+Epoch 4:  50%|▌| 20/40 [02:40<02:40,  8.01s/it, loss=7.35, v_num=89jy, train_loss_step=8.170, train_acc_step=15.30, val_loss_step=5.540, val_acc_step=4
+
+
+
+
+
+

@@ -1,0 +1,100 @@
+Beginning training run with #5000 from mscoco_train for #100 epochs...
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:446: UserWarning: Checkpoint directory /media/matt/data21/mmRad/checkpoints/ exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+Global seed set to 808
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+Loaded 5000 images in file /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv in 8 seconds.
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv
+Loaded 5000 images in file /media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv in 8 seconds.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+  | Name                 | Type                       | Params
+--------------------------------------------------------------------
+0 | model                | VisualBertModel            | 111 M
+1 | text_prediction_head | VisualBertLMPredictionHead | 24.1 M
+2 | seq_relationship     | Linear                     | 1.5 K
+3 | transform_img_ft     | Linear                     | 2.1 M
+4 | transform_img_box    | Linear                     | 10.2 K
+5 | transform_ln_ft      | LayerNorm                  | 4.1 K
+6 | transform_ln_box     | LayerNorm                  | 4.1 K
+--------------------------------------------------------------------
+137 M     Trainable params
+0         Non-trainable params
+137 M     Total params
+550.533   Total estimated model params size (MB)
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:105: UserWarning: The dataloader, val dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+  warnings.warn(
+
+Epoch 0:   3%|▌                      | 1/39 [00:00<00:12,  2.93it/s, loss=10.4, v_num=y7px, train_loss_step=10.40, train_acc_step=0.000]
+Global seed set to 808
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:105: UserWarning: The dataloader, train dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:326: UserWarning: The number of training samples (19) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+
+
+Epoch 0:  15%|███▌                   | 6/39 [00:04<00:19,  1.74it/s, loss=9.23, v_num=y7px, train_loss_step=8.630, train_acc_step=13.90]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+
+
+Epoch 0:  21%|████▌                 | 8/39 [15:02<51:48, 100.27s/it, loss=9.03, v_num=y7px, train_loss_step=8.260, train_acc_step=17.90]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+
+Epoch 0:  23%|█████▎                 | 9/39 [15:31<46:33, 93.11s/it, loss=8.96, v_num=y7px, train_loss_step=8.360, train_acc_step=15.60]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+
+Epoch 0:  26%|█████▉                 | 10/39 [15:35<41:05, 85.00s/it, loss=8.9, v_num=y7px, train_loss_step=8.380, train_acc_step=14.80]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+  warnings.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+
+
+Epoch 0:  31%|██████▊               | 12/39 [15:40<32:33, 72.34s/it, loss=8.81, v_num=y7px, train_loss_step=8.560, train_acc_step=14.90]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+  warnings.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+
+
+Epoch 0:  36%|███████▉              | 14/39 [15:47<26:18, 63.14s/it, loss=8.75, v_num=y7px, train_loss_step=8.290, train_acc_step=16.00]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+  warnings.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+
+
+Epoch 0:  41%|█████████             | 16/39 [16:30<22:20, 58.29s/it, loss=8.72, v_num=y7px, train_loss_step=8.580, train_acc_step=15.20]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+  warnings.warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+
+Epoch 0:  44%|██████████             | 17/39 [16:33<20:14, 55.20s/it, loss=8.7, v_num=y7px, train_loss_step=8.420, train_acc_step=14.00]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+
+Epoch 0:  46%|██████████▌            | 18/39 [16:36<18:20, 52.42s/it, loss=8.7, v_num=y7px, train_loss_step=8.660, train_acc_step=12.00]
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+Epoch 0:  59%|████████████▉         | 23/39 [17:15<11:30, 43.15s/it, loss=8.69, v_num=y7px, train_loss_step=8.420, train_acc_step=14.60]
+
+
+
+
+
+
+
+
+
+
+Epoch 1:  51%|▌| 20/39 [00:12<00:11,  1.67it/s, loss=8.36, v_num=y7px, train_loss_step=8.260, train_acc_step=15.
+
+
+
+
+
+
+
+Epoch 2:   3%| | 1/39 [03:08<59:47, 94.42s/it, loss=8.35, v_num=y7px, train_loss_step=8.220, train_acc_step=15.3
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+
+Epoch 2:   5%| | 2/39 [05:18<1:05:22, 106.01s/it, loss=8.35, v_num=y7px, train_loss_step=8.140, train_acc_step=1
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).

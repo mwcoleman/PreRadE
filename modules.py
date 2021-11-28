@@ -7,11 +7,17 @@ from torch.utils.data import DataLoader, Dataset
 import pytorch_lightning as pl
 import torch.optim as optim
 
-from transformers import BertTokenizer, VisualBertModel, VisualBertConfig #, VisualBertPreTrainedModel
+from transformers import (
+    BertTokenizer, 
+    VisualBertModel, 
+    VisualBertConfig, 
+    AdamW,
+    get_linear_schedule_with_warmup
+)
 from transformers.models.visual_bert.modeling_visual_bert import VisualBertLMPredictionHead
 
 from pytorch_lightning.loggers import WandbLogger, wandb
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, LearningRateMonitor
 
 
 
@@ -28,27 +34,30 @@ class MMRadForPretraining(pl.LightningModule):
         parser.add_argument
 
         # Training hyperparams
-        parser.add_argument('--lr', type=float, default=1e-4)
+        parser.add_argument('--lr', type=float, default=2e-4)
         parser.add_argument('--loadModel', dest='load_model', default=None)
+        parser.add_argument('--warmupRatio', dest='warmup_ratio', default=0.15, help='decimal fraction of total training steps to schedule warmup')
 
         return parent_parser
 
-    def __init__(self, args, tokenizer='bert-base-uncased'):
+    def __init__(self, args, train_size, tokenizer='bert-base-uncased'):
         super().__init__()
 
         self.args = args
         # TODO: Access from args / elsewhere:
-        self.config = VisualBertConfig(visual_embedding_dim=1024)
+        self.config = VisualBertConfig(visual_embedding_dim=2048)
         # Extracted features dim
         self.visual_features_dim = 1024
-        self.max_seq_len = 20
-        # TODO: Remove temp
-        self.model = VisualBertModel(self.config)#.from_pretrained("uclanlp/visualbert-vqa-coco-pre")
+
+        self.train_size = train_size
+
+        self.model = VisualBertModel(self.config).from_pretrained("uclanlp/visualbert-vqa-coco-pre")
 
         self.__init_pretraining_heads()
         self.__init_tokenizer(tok=tokenizer)
         self.__init_transforms()
 
+        # All pretext data aug tasks contained here
         self.pp = PretextProcessor(self.tokenizer)
 
     def __init_pretraining_heads(self):
@@ -78,6 +87,9 @@ class MMRadForPretraining(pl.LightningModule):
             do_lower_case=True
         )
 
+    def forward(self, **inputs):
+        return self.model(**inputs)
+
     def training_step(self, batch, batch_idx):
         # Preprocess based on the pretext tasks
         loss, acc = self.shared_step(batch, batch_idx)
@@ -85,7 +97,7 @@ class MMRadForPretraining(pl.LightningModule):
 
         logs = {'train_loss': loss, 'train_acc': acc}
 
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True)
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
         return loss
     
     def validation_step(self, batch, batch_idx):
@@ -94,7 +106,7 @@ class MMRadForPretraining(pl.LightningModule):
         # result = pl.EvalResult(checkpoint_on = loss)
 
         logs = {'val_loss': loss, 'val_acc': acc}        
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True)
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
 
         return loss
 
@@ -120,18 +132,24 @@ class MMRadForPretraining(pl.LightningModule):
         visual_token_type_ids=torch.zeros((len(batch), num_features)).to(self.device)
        
         # just make labels = inputs (for now)
-        visual_labels = visual_embeds
+        # visual_labels = visual_embeds
 
         # labels = torch.hstack([batch['txt']['input_ids'], visual_labels])
         
         # MLM only for now
+        
         labels = batch['txt']['masked_labels']
 
-        outputs = self.model(
+        #Dummy visual labels
+        visual_labels = torch.full((labels.size()[0],36),-100, device=self.device)
+        
+        labels = torch.hstack((labels,visual_labels))
+
+        outputs = self(
             input_ids=batch['txt']['masked_input_ids'],
             attention_mask=batch['txt']['att_mask'],
-            token_type_ids=batch['txt']['type_ids'],
-            position_ids=batch['txt']['pos_ids'],
+            # token_type_ids=batch['txt']['type_ids'],    # Let model auto-compute
+            # position_ids=batch['txt']['pos_ids'],       # let model auto (use absolute pos)
             head_mask=None,
             inputs_embeds=None,
             visual_embeds=visual_embeds,
@@ -148,16 +166,17 @@ class MMRadForPretraining(pl.LightningModule):
         sequence_output, pooled_output = outputs[:2]
         text_prediction_scores = self.text_prediction_head(sequence_output)
         # truncate to text ouput only
-        text_logits = text_prediction_scores[:,:self.max_seq_len,:]
+        # text_logits = text_prediction_scores[:,:self.args.max_seq_len,:]
+        text_logits = text_prediction_scores
         text_preds = text_logits[(labels > 0), :].argmax(1)
         filtered_labels = labels[(labels > 0)]
 
         # pooled_output = self.seq_relationship(pooled_output)
         total_loss = None
-        
+        acc = None
         if labels is not None:
             # TODO: Increase size for txt+image
-            total_size = batch['txt']['att_mask'].size(-1) #+ visual_attention_mask.size(-1)
+            total_size = batch['txt']['att_mask'].size(-1) + visual_attention_mask.size(-1)
             if labels.size(-1) != total_size:
                 raise ValueError(
                     f"The labels provided should have same sequence length as total attention mask. "
@@ -165,15 +184,36 @@ class MMRadForPretraining(pl.LightningModule):
                 )
 
             loss_fct = CrossEntropyLoss()
-            total_loss = loss_fct(text_logits.contiguous().view(-1, self.config.vocab_size), labels.view(-1))
+            # total_loss = loss_fct(text_logits.contiguous().view(-1, self.config.vocab_size), labels.view(-1))
+            total_loss = loss_fct(text_logits.view(-1, self.config.vocab_size), labels.view(-1))
             acc = (text_preds == filtered_labels).type(torch.float).mean()*100
+        
         return total_loss,acc
 
     def configure_optimizers(self):
-        # optimizer = optim.Adam(self.model.parameters(), lr = self.args.lr)
-        optimizer = optim.Adam(self.model.parameters(), lr = 2e-5)
+        
+        steps_per_epoch = self.train_size // self.args.batch_size
+        total_epochs = self.args.epochs
 
-        return [optimizer]
+        optimizer = AdamW(self.model.parameters(), lr=self.args.lr)
+
+        linear_warmup = get_linear_schedule_with_warmup(
+            optimizer, 
+            num_warmup_steps=int(total_epochs*steps_per_epoch*self.args.warmup_ratio), 
+            num_training_steps=total_epochs*steps_per_epoch, 
+            # last_epoch=self.current_epoch
+            )
+
+        
+        lr_scheduler = {'scheduler':linear_warmup,
+                        'name':'learning_rate',
+                        'interval':'step',
+                        'frequency':1}
+
+
+        # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.args.lr, steps_per_epoch=20, epochs=200, anneal_strategy='linear')
+        return [optimizer], [lr_scheduler]
+        # return {'optimizer':optimizer, 'lr_scheduler':scheduler}
 
 class PretextProcessor:
     """Contains methods to mask etc"""
@@ -188,12 +228,13 @@ class PretextProcessor:
         # batch['txt']['tokens'] = [self.tok.convert_tokens_to_ids(['[CLS]']+self.tok.tokenize(s.strip())+['[SEP]'])
         #                         for s in batch['txt']['raw']]
         # pad_fct = lambda a,i: a[0:i] if len(a) > i else a + [0]*(i-len(a))
+        # TODO: .batch_encode_plus
         encoded = [self.tok.encode_plus(
             text=sent,
             add_special_tokens=True,
             max_length = self.max_seq_len,
             truncation=True,
-            pad_to_max_length = True,
+            padding='max_length',
             return_attention_mask = True,
             return_tensors = 'pt',
         ) for sent in batch['txt']['raw']]
@@ -220,8 +261,8 @@ class PretextProcessor:
 
         # Avoid masking CLS(101), SEP(102) and padded (0)
         avoid_mask = torch.add(batch['txt']['input_ids']==0,
-                               torch.add(batch['txt']['input_ids']==self.tok.convert_tokens_to_ids(['[CLS]']),
-                                         batch['txt']['input_ids']==self.tok.convert_tokens_to_ids(['[SEP]'])))
+                               torch.add(batch['txt']['input_ids']==101,
+                                         batch['txt']['input_ids']==102))
         
 
         inp_mask[avoid_mask] = False
@@ -265,7 +306,7 @@ class MMRadDM(pl.LightningDataModule):
         parser.add_argument("--test", default=None)
         parser.add_argument("--dropLast", dest='drop_last', default=True)
         parser.add_argument("--shuffle", default=True)
-        parser.add_argument("--topk", default=1000)
+        parser.add_argument("--topk", default=5120)
         parser.add_argument("--topkVal", dest='val_topk', default=None)
 
         # Sizing
@@ -293,7 +334,9 @@ class MMRadDM(pl.LightningDataModule):
         self.train_split=args.train_split
         self.valid_split=args.valid_split
         self.data_path=args.data_path
-        # self.num_workers = 12
+
+        self.num_workers = os.cpu_count()
+
     def prepare_data(self):
         # Called on 1 GPU only
         pass
@@ -301,13 +344,16 @@ class MMRadDM(pl.LightningDataModule):
     def setup(self, stage=None):
         # Called on every GPU
         if stage=='fit' or stage is None:
-
+            
             if self.train_split=='mscoco_train':
                 self.train_dset = CocoDataset(self.data_path+'captions_train2017.json',
                         self.data_path+'img_features/mscoco-train_2017-custom.tsv', topk=self.topk)
+                self.train_size = len(self.train_dset)
+            
             if self.valid_split=='mscoco_val':
                 self.valid_dset = CocoDataset(self.data_path+'captions_val2017.json',
                         self.data_path+'img_features/mscoco-val_2017-custom.tsv', topk=self.val_topk)
+                self.valid_size = len(self.valid_dset)
 
         if stage=='test' or stage is None:
             pass
@@ -320,7 +366,7 @@ class MMRadDM(pl.LightningDataModule):
             shuffle=self.shuffle,
             # collate_fn=lambda x: x,
             drop_last=self.drop_last, pin_memory=True,
-            # num_workers=self.num_workers
+            num_workers=self.num_workers
         )
         return dl
 
@@ -330,7 +376,7 @@ class MMRadDM(pl.LightningDataModule):
             shuffle=False,
             # collate_fn=lambda x: x,
             drop_last=False, pin_memory=True,
-            # num_workers=self.num_workers
+            num_workers=self.num_workers
         )
         return dl    
 
@@ -381,7 +427,7 @@ def load_tsv(fname, topk=None):
 class CocoDataset(Dataset):
     """MS-COCO dataset captions only
     No transforms/process here"""
-    def __init__(self, json_fp, img_ft_path, topk=5000):
+    def __init__(self, json_fp, img_ft_path, topk=5120):
         super().__init__()
 
         with open(json_fp) as f:
@@ -420,34 +466,31 @@ class CocoDataset(Dataset):
         return sample
 
 
+##
+# TODO: This can be removed once pytorch-lightning issue #10408 is merged
+# https://github.com/PyTorchLightning/pytorch-lightning/pull/10408
+import warnings
+
+warnings.filterwarnings(
+    "ignore", ".*Trying to infer the `batch_size` from an ambiguous collection.*"
+)
+##
+
+
 # Sample run 
 if __name__=='__main__':
-    # dataset = CocoDataset('/media/matt/data21/datasets/ms-coco/2017/val2017/captions_val2017.json',
-    #                   '/media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv')
-    # loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE)
-    # # just for testing
-    # sample_processor = PretextProcessor(BertTokenizer.from_pretrained('bert-base-uncased'))
-
-    # for idx,batch in enumerate(loader):
-    #     sample = batch
-    #     sample = sample_processor.tokenize_pad_vectorize(sample)
-    #     sample = sample_processor.mask_txt(sample)
-    #     break
-
-    # print("Done")
-
-    #### pl:
-
-    ## Args
+    #### Args
     from argparse import ArgumentParser
     parser = ArgumentParser()
 
     # Program level
-    parser.add_argument('--name', dest='run_name', default='mlm-256')
+    parser.add_argument('--name', dest='run_name', default='debug_2e-4')
     parser.add_argument('--seed', type=int, default=808, help='random seed')
     parser.add_argument('--maxSeqLen', dest='max_seq_len', type=int, default=20)
-    parser.add_argument('--epochs', dest='epochs', type=int, default=100)
-    parser.add_argument('--savePath', dest='model_checkpoint_path', type=str, default=os.getcwd()+'/checkpoint')
+    parser.add_argument('--epochs', dest='epochs', type=int, default=20)
+    parser.add_argument('--savePath', dest='model_checkpoint_path', type=str, 
+                        default='/media/matt/data21/mmRad/checkpoints/')
+
     # Model specific
     parser = MMRadForPretraining.add_model_specific_args(parser)
     # Data specific
@@ -457,23 +500,32 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    
-    
+    ####
+
 
     dm = MMRadDM(args)
-    mmRad = MMRadForPretraining(args=args)
+    dm.setup(stage='fit')
+
+    mmRad = MMRadForPretraining(args=args, train_size=dm.train_size)
     
+    # Logging & Callbacks
     wandb_logger = WandbLogger(name=args.run_name, project='mmRad')
     wandb_logger.watch(mmRad)
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
-        dirpath=args.model_checkpoint_path
+        dirpath=args.model_checkpoint_path + args.run_name + '/',
+        every_n_epochs=2
     )
+    lr_monitor = LearningRateMonitor(logging_interval='step')
+   
+   
+    # Reproducibility
+    pl.seed_everything(808, workers=True)
 
-    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[MyCallBack(), InputMonitor()], 
-                         log_every_n_steps=50, max_epochs=args.epochs, deterministic=True,
-                         logger=wandb_logger)
+    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback, lr_monitor], 
+                         log_every_n_steps=10, max_epochs=args.epochs, deterministic=False, 
+                         logger=wandb_logger, track_grad_norm=-1, fast_dev_run=False)
     
-    print(f"Beginning training run with #{args.topk} from {args.train_split} for #{args.epochs} epochs...")
+    print(f"\nBeginning training run with #{args.topk} from {args.train_split} for #{args.epochs} epochs...\n")
     trainer.fit(mmRad, dm)

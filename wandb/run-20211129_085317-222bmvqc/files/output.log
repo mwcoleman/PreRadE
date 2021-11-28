@@ -1,0 +1,10 @@
+[34m[1mwandb[39m[22m: logging graph, to disable use `wandb.watch(log_graph=False)`
+Global seed set to 808
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+Beginning training run with #5120 from mscoco_train for #200 epochs...
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv
+Loaded 5120 images in file /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv in 9 seconds.
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]

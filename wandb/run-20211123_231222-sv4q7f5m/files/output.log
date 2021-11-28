@@ -1,0 +1,98 @@
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:446: UserWarning: Checkpoint directory /media/matt/data21/mmRad/checkpoints/ exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+Global seed set to 808
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+Beginning training run with #5000 from mscoco_train for #100 epochs...
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv
+Loaded 5000 images in file /media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv in 10 seconds.
+Start to load Faster-RCNN detected objects from /media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loaded 5000 images in file /media/matt/data21/mmRad/img_features/mscoco-val_2017-custom.tsv in 8 seconds.
+  | Name                 | Type                       | Params
+--------------------------------------------------------------------
+0 | model                | VisualBertModel            | 111 M
+1 | text_prediction_head | VisualBertLMPredictionHead | 24.1 M
+2 | seq_relationship     | Linear                     | 1.5 K
+3 | transform_img_ft     | Linear                     | 2.1 M
+4 | transform_img_box    | Linear                     | 10.2 K
+5 | transform_ln_ft      | LayerNorm                  | 4.1 K
+6 | transform_ln_box     | LayerNorm                  | 4.1 K
+--------------------------------------------------------------------
+137 M     Trainable params
+0         Non-trainable params
+137 M     Total params
+550.533   Total estimated model params size (MB)
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:105: UserWarning: The dataloader, val dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/transformers/tokenization_utils_base.py:2211: FutureWarning: The `pad_to_max_length` argument is deprecated and will be removed in a future version, use `padding=True` or `padding='longest'` to pad to the longest sequence in the batch, or use `padding='max_length'` to pad to a max length. In this case, you can give a specific length with `max_length` (e.g. `max_length=45`) or leave max_length to None to pad to the maximal input size of the model (e.g. 512 for Bert).
+  warnings.warn(
+Global seed set to 808
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:105: UserWarning: The dataloader, train dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+/home/matt/anaconda3/envs/lxmert/lib/python3.8/site-packages/pytorch_lightning/trainer/data_loading.py:326: UserWarning: The number of training samples (19) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+  rank_zero_warn(
+
+
+
+
+
+
+Epoch 0:  54%|█████████████████████████████████████████████████████████████▉                                                     | 21/39 [00:13<00:11,  1.60it/s, loss=7.23, v_num=7f5m, train_loss_step=6.480, train_acc_step=35.70]
+
+
+
+
+
+
+
+
+
+
+Epoch 1:  51%|▌| 20/39 [00:13<00:11,  1.60it/s, loss=6.43, v_num=7f5m, train_loss_step=7.150, train_acc_step=28.30, val_loss_step=6.060, val_acc_step=38.90, val_loss_epoch=6.110, val_acc_epoch=38.80, train_loss_epoch=7.200, train
+
+
+
+
+
+
+
+
+
+
+Epoch 2:  62%|▌| 24/39 [00:14<00:08,  1.70it/s, loss=6.61, v_num=7f5m, train_loss_step=8.000, train_acc_step=21.00, val_loss_step=6.700, val_acc_step=31.90, val_loss_epoch=6.650, val_acc_epoch=32.80, train_loss_epoch=6.430, train
+
+
+
+
+
+
+
+
+
+Epoch 3:  56%|▌| 22/39 [00:13<00:10,  1.65it/s, loss=7.82, v_num=7f5m, train_loss_step=8.480, train_acc_step=11.00, val_loss_step=7.990, val_acc_step=19.70, val_loss_epoch=8.200, val_acc_epoch=17.70, train_loss_epoch=6.570, train
+
+
+
+
+
+
+
+
+
+Epoch 4:  56%|▌| 22/39 [00:14<00:10,  1.64it/s, loss=8.38, v_num=7f5m, train_loss_step=8.290, train_acc_step=14.60, val_loss_step=8.400, val_acc_step=13.40, val_loss_epoch=8.270, val_acc_epoch=14.30, train_loss_epoch=7.820, train
+
+
+
+
+
+
+
+
+
+Epoch 5:  56%|▌| 22/39 [00:14<00:10,  1.64it/s, loss=8.28, v_num=7f5m, train_loss_step=8.270, train_acc_step=15.60, val_loss_step=8.050, val_acc_step=16.30, val_loss_epoch=8.210, val_acc_epoch=14.60, train_loss_epoch=8.370, train
+
+
+
+

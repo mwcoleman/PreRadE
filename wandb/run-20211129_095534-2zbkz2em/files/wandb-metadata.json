@@ -1,0 +1,24 @@
+{
+    "os": "Linux-5.11.0-40-generic-x86_64-with-glibc2.17",
+    "python": "3.8.11",
+    "heartbeatAt": "2021-11-28T22:55:36.667465",
+    "startedAt": "2021-11-28T22:55:34.457272",
+    "docker": null,
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "gpu_count": 1,
+    "cpu_count": 12,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/matt/Coding/research/lxmert_lightning_v2/modules.py",
+    "codePath": "modules.py",
+    "git": {
+        "remote": "https://github.com/mwcoleman/mmRad.git",
+        "commit": "4970bd710cf1196fd8faed3826e429542d9955a7"
+    },
+    "email": "coleman85@gmail.com",
+    "root": "/home/matt/Coding/research/lxmert_lightning_v2",
+    "host": "X570",
+    "username": "matt",
+    "executable": "/home/matt/anaconda3/envs/lxmert/bin/python"
+}
