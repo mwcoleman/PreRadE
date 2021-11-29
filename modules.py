@@ -1,11 +1,10 @@
-import os, json, csv, base64, time
+import os, json
 import torch
 from torch import nn
 import numpy as np
 from torch.nn import CrossEntropyLoss, SmoothL1Loss
 from torch.utils.data import DataLoader, Dataset
 import pytorch_lightning as pl
-import torch.optim as optim
 
 from transformers import (
     BertTokenizer, 
@@ -19,7 +18,7 @@ from transformers.models.visual_bert.modeling_visual_bert import VisualBertLMPre
 from pytorch_lightning.loggers import WandbLogger, wandb
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, LearningRateMonitor
 
-
+from utils import load_tsv
 
 class MMRadForPretraining(pl.LightningModule):
     
@@ -215,6 +214,14 @@ class MMRadForPretraining(pl.LightningModule):
         return [optimizer], [lr_scheduler]
         # return {'optimizer':optimizer, 'lr_scheduler':scheduler}
 
+    def save_model(self):
+        """Save the backbone model for fine tuning"""
+
+
+class MMRadForFineTuning(pl.LightningModule):
+    pass
+
+
 class PretextProcessor:
     """Contains methods to mask etc"""
     def __init__(self, tokenizer, max_seq_len=20, mlm_rate=0.15):
@@ -391,38 +398,7 @@ class InputMonitor(Callback):
             logger.experiment.add_histogram("input", x, global_step=trainer.global_step)
             logger.experiment.add_histogram("target", y, global_step=trainer.global_step)
 
-def load_tsv(fname, topk=None):
-    """Load object features from tsv file.
 
-    :param fname: The path to the tsv file.
-    :param topk: Only load features for top K images (lines) in the tsv file.
-        Will load all the features if topk is either -1 or None.
-    :return: A dict of image object features where each feature is a dict.
-    """
-    import sys
-    csv.field_size_limit(sys.maxsize)
-    start_time = time.time()
-    print("Start to load Faster-RCNN detected objects from %s" % fname)
-    with open(fname, 'r') as f:
-        reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
-                        "num_boxes", "boxes", "features"], delimiter="\t")
-        
-        data = {}
-        for _, item in enumerate(reader):
-            new_item = {}
-            num_boxes = int(item['num_boxes'])
-            for key in ['img_h', 'img_w', 'num_boxes']:
-                new_item[key] = int(item[key])
-            # slice from 2: to remove b' (csv.writer wraps all vals in str())
-            new_item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32).reshape(num_boxes,-1).copy()
-            new_item['boxes'] = np.frombuffer(base64.b64decode(item['boxes'][2:]), dtype=np.float32).reshape(num_boxes,4).copy()
-            
-            data[item['img_id']] = new_item
-            if topk is not None and len(data) == topk:
-                break
-    elapsed_time = time.time() - start_time
-    print("Loaded %d images in file %s in %d seconds." % (len(data), fname, elapsed_time))
-    return data
 
 class CocoDataset(Dataset):
     """MS-COCO dataset captions only
@@ -466,66 +442,3 @@ class CocoDataset(Dataset):
         return sample
 
 
-##
-# TODO: This can be removed once pytorch-lightning issue #10408 is merged
-# https://github.com/PyTorchLightning/pytorch-lightning/pull/10408
-import warnings
-
-warnings.filterwarnings(
-    "ignore", ".*Trying to infer the `batch_size` from an ambiguous collection.*"
-)
-##
-
-
-# Sample run 
-if __name__=='__main__':
-    #### Args
-    from argparse import ArgumentParser
-    parser = ArgumentParser()
-
-    # Program level
-    parser.add_argument('--name', dest='run_name', default='debug_2e-4')
-    parser.add_argument('--seed', type=int, default=808, help='random seed')
-    parser.add_argument('--maxSeqLen', dest='max_seq_len', type=int, default=20)
-    parser.add_argument('--epochs', dest='epochs', type=int, default=20)
-    parser.add_argument('--savePath', dest='model_checkpoint_path', type=str, 
-                        default='/media/matt/data21/mmRad/checkpoints/')
-
-    # Model specific
-    parser = MMRadForPretraining.add_model_specific_args(parser)
-    # Data specific
-    parser = MMRadDM.add_model_specific_args(parser)
-    # Trainer specific
-    parser = pl.Trainer.add_argparse_args(parser)
-
-    args = parser.parse_args()
-
-    ####
-
-
-    dm = MMRadDM(args)
-    dm.setup(stage='fit')
-
-    mmRad = MMRadForPretraining(args=args, train_size=dm.train_size)
-    
-    # Logging & Callbacks
-    wandb_logger = WandbLogger(name=args.run_name, project='mmRad')
-    wandb_logger.watch(mmRad)
-
-    checkpoint_callback = ModelCheckpoint(
-        monitor="val_loss",
-        dirpath=args.model_checkpoint_path + args.run_name + '/',
-        every_n_epochs=2
-    )
-    lr_monitor = LearningRateMonitor(logging_interval='step')
-   
-   
-    # Reproducibility
-    pl.seed_everything(808, workers=True)
-
-    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback, lr_monitor], 
-                         log_every_n_steps=10, max_epochs=args.epochs, deterministic=False, 
-                         logger=wandb_logger, track_grad_norm=-1, fast_dev_run=False)
-    
-    print(f"\nBeginning training run with #{args.topk} from {args.train_split} for #{args.epochs} epochs...\n")
-    trainer.fit(mmRad, dm)

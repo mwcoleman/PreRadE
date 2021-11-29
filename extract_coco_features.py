@@ -4,7 +4,6 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.data import Dataset
-import pandas as pd
 
 # from detectron2.modeling import build_model
 # from detectron2.checkpoint import DetectionCheckpointer
@@ -25,54 +24,6 @@ from utils import (
     collate_func
 )
 
-
-
-
-
-class RawCubDataset(Dataset):
-    """CUB dataset; image, class, caption"""
-    def __init__(self, csv_file=None, img_dir=None):
-        if csv_file is None:
-            csv_file = self.join_cub_csv()
-        self.data = pd.read_csv(csv_file)
-            
-        self.img_dir = img_dir
-    def __len__(self):
-        return len(self.data)
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-        
-        image_fp = os.path.join(self.img_dir,
-                                self.data['filenames'][idx])
-        image = plt.imread(image_fp)
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
-        
-        # 0 vs 1 indexed not that it matters
-        sample = {'img_id': self.data['id'][idx], 
-                  'caption':self.data['captions'][idx], 
-                  'label':self.data['class'][idx],
-                  'image':image}
-        return sample
-    
-    def join_cub_csv(root_dir='/media/matt/data21/datasets/CUB/'):
-        """"Concat files to simple csv"""
-        caption_df = pd.read_csv(root_dir + 'sentences.csv')
-        image_df = pd.read_csv(root_dir + 'images.txt', sep=' ', header=None)
-        class_df = pd.read_csv(root_dir + 'image_class_labels.txt', sep=' ', header=None)
-
-        image_df.rename(columns={1:'filenames', 0:'id'}, inplace=True)
-        class_df.rename(columns={0:'id', 1:'class'}, inplace=True)    
-
-        caption_dict = {}
-        for _, row in caption_df.iterrows():
-            caption_dict[row['filepath']] = row['captions']
-
-        image_df['captions'] = image_df[1].apply(lambda x: caption_dict[x])
-
-        df = pd.concat([image_df, class_df['class']], axis=1)
-        df.to_csv(root_dir + 'caption_label_data.csv', index=None)
-        return root_dir + 'caption_label_data.csv'
 
 class RawCocoDataset(Dataset):
     """MS-COCO dataset captions only
@@ -103,55 +54,26 @@ class RawCocoDataset(Dataset):
 
 
 
-# Pretraining data ms-coco 2017 captions
+
 COCO_ANNOT_PATH = '/media/matt/data21/datasets/ms-coco/2017/annotations_trainval2017/captions_train2017.json'
 COCO_IMG_PATH = '/media/matt/data21/datasets/ms-coco/2017/train2017'
-
-# Fine tuning data CUB
-CUB_CSV_PATH = '/media/matt/data21/datasets/CUB/caption_label_data.csv'
-CUB_IMG_PATH = '/media/matt/data21/datasets/CUB/images/'
-
-
-
 CFG_PATH =  "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
 # "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
 # "COCO-Detection/faster_rcnn_R_101_FPN_3x.yaml"
 # "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
 # "COCO-Detection/retinanet_R_101_FPN_3x.yaml" Doesn't have proposal network..
 
+
 BATCH_SIZE=4
+
 
 if __name__=='__main__':
     
-
-    from argparse import ArgumentParser
-    parser = ArgumentParser()
-    parser.add_argument('--dataset', default='cub')
-    parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/cub_all.tsv')
-    parser.add_argument('--visualise', dest='visualise_examples', default=False)
-
-    args = parser.parse_args()
-    print(f"Building tsv dataset for {args.dataset} dataset. File locations given:")
-    if args.dataset=='coco':
-        print(f"Annotations: {COCO_ANNOT_PATH}")
-        print(f"Images: {COCO_IMG_PATH}")
-
-        dataset = RawCocoDataset(COCO_ANNOT_PATH, COCO_IMG_PATH)
-
-    elif args.dataset=='cub':
-        print(f"Annotations: {CUB_CSV_PATH}")
-        print(f"Images: {CUB_IMG_PATH}")
-
-        dataset = RawCubDataset(CUB_CSV_PATH, CUB_IMG_PATH)
-        print("done")
-
-
     d2_rcnn = Extractor(CFG_PATH, batch_size=BATCH_SIZE)
-    
+    dataset = RawCocoDataset(COCO_ANNOT_PATH, COCO_IMG_PATH)
     loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_func)
 
-    assert not os.path.exists(args.output), "output tsv file exists"
-    tsv_writer = FeatureWriterTSV(args.output)
+    tsv_writer = FeatureWriterTSV('/media/matt/data21/mmRad/img_features/mscoco-train_2017-custom.tsv')
     
     prepare = PrepareImageInputs(d2_rcnn)
     
@@ -170,16 +92,12 @@ if __name__=='__main__':
     start_time = time.time()
     for batch_idx, batch in enumerate(loader):
         samples = prepare(batch)
-        
-        if args.visualise_examples:
-            d2_rcnn.show_sample(samples)
-            d2_rcnn.visualise_features(samples)
+        # d2_rcnn.show_sample(samples)
+        # d2_rcnn.visualise_features(samples)
         
         visual_embeds, output_boxes, num_boxes = d2_rcnn(samples)
         
         # write current batch to file
-        # img dim is resized to have shortest edge a multiple
-        # of allowable detectron2 inputs, e.g. 800px
         items_dict = [{'img_id': batch['img_ids'][i],
                        'img_h': samples[1][i]['height'],
                        'img_w': samples[1][i]['width'],
