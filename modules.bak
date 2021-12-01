@@ -22,12 +22,16 @@ from pytorch_lightning.callbacks import Callback, ModelCheckpoint, LearningRateM
 from utils import load_tsv
 
 
-class MMRad(pl.LightningModule):
+class MMRad(pl.lightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group("MMRad")
+        parser = parent_parser.add_argument_group("MMRadForPretraining")
+        
         # Model config
         parser.add_argument('--loadModelConfig', dest='load_model_config', default=None)
+        
+        # Pretraining config
+        parser.add_argument
 
         # Training hyperparams
         parser.add_argument('--lr', type=float, default=2e-4)
@@ -50,11 +54,17 @@ class MMRad(pl.LightningModule):
 
         self.model = VisualBertModel(self.config).from_pretrained("uclanlp/visualbert-vqa-coco-pre")
 
+        self.__init_pretraining_heads()
         self.__init_tokenizer(tok=tokenizer)
         self.__init_transforms()
 
         # All pretext data aug tasks contained here
         self.pp = PretextProcessor(self.tokenizer)
+
+    def __init_pretraining_heads(self):
+        self.text_prediction_head = VisualBertLMPredictionHead(self.config)
+        self.seq_relationship = nn.Linear(self.config.hidden_size, 2)
+        # self.image_mfr_prediction
 
     def __init_transforms(self):
         """Linear transform of input embeddings (from obj. detector
@@ -100,42 +110,6 @@ class MMRad(pl.LightningModule):
         self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
 
         return loss
-
-    def shared_step(self, batch, batch_idx):
-        pass
-    
-    def configure_optimizers(self):
-        
-        steps_per_epoch = self.train_size // self.args.batch_size
-        total_epochs = self.args.epochs
-
-        optimizer = AdamW(self.model.parameters(), lr=self.args.lr)
-
-        linear_warmup = get_linear_schedule_with_warmup(
-            optimizer, 
-            num_warmup_steps=int(total_epochs*steps_per_epoch*self.args.warmup_ratio), 
-            num_training_steps=total_epochs*steps_per_epoch, 
-            # last_epoch=self.current_epoch
-            )
-   
-        lr_scheduler = {'scheduler':linear_warmup,
-                        'name':'learning_rate',
-                        'interval':'step',
-                        'frequency':1}
-
-        return [optimizer], [lr_scheduler]
-
-class MMRadForPretraining(MMRad):
-    
-    def __init__(self, args, train_size, tokenizer='bert-base-uncased'):
-        super().__init__(args, train_size, tokenizer=tokenizer)
-
-        self.__init_pretraining_heads()
-
-    def __init_pretraining_heads(self):
-        self.text_prediction_head = VisualBertLMPredictionHead(self.config)
-        self.seq_relationship = nn.Linear(self.config.hidden_size, 2)
-        # self.image_mfr_prediction
 
     def shared_step(self, batch, batch_idx):
 
@@ -217,38 +191,133 @@ class MMRadForPretraining(MMRad):
         
         return total_loss,acc
 
-class MMRadForClassification(MMRad):
-    """Adds head for image classification"""
-    def __init__(self, args, train_size, num_classes, tokenizer='bert-base-uncased'):
-        super().__init__(args, train_size, tokenizer=tokenizer)
+    def configure_optimizers(self):
+        
+        steps_per_epoch = self.train_size // self.args.batch_size
+        total_epochs = self.args.epochs
 
-        self.dropout = nn.Dropout(self.config.hidden_dropout_prob)
-        self.cls = nn.Linear(self.config.hidden_size, num_classes)
-        # TODO: put this into args, make specific args for class
-        self.img_only = False
+        optimizer = AdamW(self.model.parameters(), lr=self.args.lr)
+
+        linear_warmup = get_linear_schedule_with_warmup(
+            optimizer, 
+            num_warmup_steps=int(total_epochs*steps_per_epoch*self.args.warmup_ratio), 
+            num_training_steps=total_epochs*steps_per_epoch, 
+            # last_epoch=self.current_epoch
+            )
+
+        
+        lr_scheduler = {'scheduler':linear_warmup,
+                        'name':'learning_rate',
+                        'interval':'step',
+                        'frequency':1}
+
+
+        # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.args.lr, steps_per_epoch=20, epochs=200, anneal_strategy='linear')
+        return [optimizer], [lr_scheduler]
+        # return {'optimizer':optimizer, 'lr_scheduler':scheduler}
+
+class MMRadForPretraining(pl.LightningModule):
+    
+    @staticmethod
+    def add_model_specific_args(parent_parser):
+        parser = parent_parser.add_argument_group("MMRadForPretraining")
+        
+        # Model config
+        parser.add_argument('--loadModelConfig', dest='load_model_config', default=None)
+        
+        # Pretraining config
+        parser.add_argument
+
+        # Training hyperparams
+        parser.add_argument('--lr', type=float, default=2e-4)
+        parser.add_argument('--loadModel', dest='load_model', default=None)
+        parser.add_argument('--warmupRatio', dest='warmup_ratio', default=0.15, 
+                            help='decimal fraction of total training steps to schedule warmup')
+
+        return parent_parser
+
+    def __init__(self, args, train_size, tokenizer='bert-base-uncased'):
+        super().__init__()
+
+        self.args = args
+        # TODO: Access from args / elsewhere:
+        self.config = VisualBertConfig(visual_embedding_dim=2048)
+        # Extracted features dim
+        self.visual_features_dim = 1024
+
+        self.train_size = train_size
+
+        self.model = VisualBertModel(self.config).from_pretrained("uclanlp/visualbert-vqa-coco-pre")
+
+        self.__init_pretraining_heads()
+        self.__init_tokenizer(tok=tokenizer)
+        self.__init_transforms()
+
+        # All pretext data aug tasks contained here
+        self.pp = PretextProcessor(self.tokenizer)
+
+    def __init_pretraining_heads(self):
+        self.text_prediction_head = VisualBertLMPredictionHead(self.config)
+        self.seq_relationship = nn.Linear(self.config.hidden_size, 2)
+        # self.image_mfr_prediction
+
+    def __init_transforms(self):
+        """Linear transform of input embeddings (from obj. detector
+        to input of Tx encoder."""
+        # TODO: fix up the 
+        self.transform_img_ft = nn.Linear(self.visual_features_dim, self.config.visual_embedding_dim)
+        self.transform_img_box = nn.Linear(4, self.config.visual_embedding_dim)
+        self.transform_ln_ft = nn.LayerNorm(self.config.visual_embedding_dim)
+        self.transform_ln_box = nn.LayerNorm(self.config.visual_embedding_dim)
+
+    def __init_tokenizer(self, tok):
+        
+        if os.path.exists('./'+tok+'/'):
+            tok_path = './'+tok+'/'
+            print("Local Tokenizer exists")
+        else:
+            # download
+            tok_path = tok
+        self.tokenizer = BertTokenizer.from_pretrained(
+            tok_path,
+            do_lower_case=True
+        )
+
+    def forward(self, **inputs):
+        return self.model(**inputs)
+
+    def training_step(self, batch, batch_idx):
+        # Preprocess based on the pretext tasks
+        loss, acc = self.shared_step(batch, batch_idx)
+        # result = pl.TrainResult(loss)
+
+        logs = {'train_loss': loss, 'train_acc': acc}
+
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
+        return loss
+    
+    def validation_step(self, batch, batch_idx):
+
+        loss, acc = self.shared_step(batch, batch_idx)
+        # result = pl.EvalResult(checkpoint_on = loss)
+
+        logs = {'val_loss': loss, 'val_acc': acc}        
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
+
+        return loss
 
     def shared_step(self, batch, batch_idx):
-        # a batch should be a dict containing:
-        #   - input_ids
-        #   - attention_mask
-        #   - token_type_ids (for seq_prediction task)
-        #   - position_ids
-        #   - visual_embeds
-        #   - visual_attention_mask
+
+        # a batch should be a dict containing
+        # input_ids, attention_mask, token_type_ids (for seq_prediction task), position_ids,
+        # visual_embeds, visual_attention_mask, return_dict=True
     
-        # process txt
-        if not self.img_only:
-            batch = self.pp.tokenize_pad_vectorize(batch)
-            batch['txt']['input_ids'] = batch['txt']['input_ids'].to(self.device)
-        else:
-            # TODO: device calls
-            batch['txt']['input_ids'] = torch.zeros(len(batch), self.max_seq_len).to(self.device)
-            batch['txt']['att_mask'] = torch.zeros(len(batch), self.max_seq_len).to(self.device)
-            batch['txt']['type_ids'] = torch.zeros(len(batch), self.max_seq_len).to(self.device)
-            batch['txt']['pos_ids'] = torch.ones_like(batch['txt']['input_ids']).to(self.device)
-            batch['txt']['pos_ids'] *= torch.arange(0,batch['txt']['input_ids'].size()[1], 1).to(self.device)
-        
+        # process batch with pretext obj - MLM
+        batch = self.pp.tokenize_pad_vectorize(batch)
+        batch = self.pp.mask_txt(batch)
+
         # linear map img input to tx dim and add positions
+        
         embed_ft = self.transform_ln_ft(self.transform_img_ft(batch['img']['features']))
         embed_pos =  self.transform_ln_box(self.transform_img_box(batch['img']['boxes']))
         visual_embeds = torch.div(torch.add(embed_ft, embed_pos), 2)
@@ -256,11 +325,24 @@ class MMRadForClassification(MMRad):
         # TODO: Handle elsewhere (preproc)
         num_features = batch['img']['num_boxes'][0]
         visual_attention_mask=torch.ones((len(batch['img']['id']), num_features)).to(self.device)
+        visual_token_type_ids=torch.zeros((len(batch), num_features)).to(self.device)
        
-        labels = batch['label']
+        # just make labels = inputs (for now)
+        # visual_labels = visual_embeds
+
+        # labels = torch.hstack([batch['txt']['input_ids'], visual_labels])
+        
+        # MLM only for now
+        
+        labels = batch['txt']['masked_labels']
+
+        #Dummy visual labels
+        visual_labels = torch.full((labels.size()[0],36),-100, device=self.device)
+        
+        labels = torch.hstack((labels,visual_labels))
 
         outputs = self(
-            input_ids=batch['txt']['input_ids'],
+            input_ids=batch['txt']['masked_input_ids'],
             attention_mask=batch['txt']['att_mask'],
             # token_type_ids=batch['txt']['type_ids'],    # Let model auto-compute
             # position_ids=batch['txt']['pos_ids'],       # let model auto (use absolute pos)
@@ -277,22 +359,63 @@ class MMRadForClassification(MMRad):
 
         # Run through PT heads - MLM only for now.
         # Most code borrowed from HF visualbertforpretraining
-        # sequence_output.shape = (batch_size, max_seq_len, hidden_dim)
-        # pooled_output.shape = (batch_size, 768)
         sequence_output, pooled_output = outputs[:2]
-        cls_scores = self.cls(pooled_output)
-        preds = cls_scores.argmax(1)
+        text_prediction_scores = self.text_prediction_head(sequence_output)
+        # truncate to text ouput only
+        # text_logits = text_prediction_scores[:,:self.args.max_seq_len,:]
+        text_logits = text_prediction_scores
+        text_preds = text_logits[(labels > 0), :].argmax(1)
+        filtered_labels = labels[(labels > 0)]
 
+        # pooled_output = self.seq_relationship(pooled_output)
         total_loss = None
         acc = None
+        if labels is not None:
+            # TODO: Increase size for txt+image
+            total_size = batch['txt']['att_mask'].size(-1) + visual_attention_mask.size(-1)
+            if labels.size(-1) != total_size:
+                raise ValueError(
+                    f"The labels provided should have same sequence length as total attention mask. "
+                    f"Found labels with sequence length {labels.size(-1)}, expected {total_size}."
+                )
 
-        loss_fct = CrossEntropyLoss()
-        total_loss = loss_fct(cls_scores, labels)
-        acc = (preds == labels).type(torch.float).mean()*100
-    
+            loss_fct = CrossEntropyLoss()
+            # total_loss = loss_fct(text_logits.contiguous().view(-1, self.config.vocab_size), labels.view(-1))
+            total_loss = loss_fct(text_logits.view(-1, self.config.vocab_size), labels.view(-1))
+            acc = (text_preds == filtered_labels).type(torch.float).mean()*100
+        
         return total_loss,acc
 
-    
+    def configure_optimizers(self):
+        
+        steps_per_epoch = self.train_size // self.args.batch_size
+        total_epochs = self.args.epochs
+
+        optimizer = AdamW(self.model.parameters(), lr=self.args.lr)
+
+        linear_warmup = get_linear_schedule_with_warmup(
+            optimizer, 
+            num_warmup_steps=int(total_epochs*steps_per_epoch*self.args.warmup_ratio), 
+            num_training_steps=total_epochs*steps_per_epoch, 
+            # last_epoch=self.current_epoch
+            )
+
+        
+        lr_scheduler = {'scheduler':linear_warmup,
+                        'name':'learning_rate',
+                        'interval':'step',
+                        'frequency':1}
+
+
+        # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.args.lr, steps_per_epoch=20, epochs=200, anneal_strategy='linear')
+        return [optimizer], [lr_scheduler]
+        # return {'optimizer':optimizer, 'lr_scheduler':scheduler}
+
+
+
+class MMRadForFineTuning(pl.LightningModule):
+    pass
+
 
 class PretextProcessor:
     """Contains methods to mask etc"""
@@ -442,9 +565,7 @@ class MMRadDM(pl.LightningDataModule):
                 valid_set_size = len(cubdata) - train_set_size
                 self.train_dset, self.valid_dset = random_split(cubdata, [train_set_size, valid_set_size])
                 self.train_size = len(self.train_dset)
-
-                # Store number of classes
-                self.num_classes = cubdata.get_num_classes()
+            
 
 
 
@@ -503,9 +624,6 @@ class CubDataset(Dataset):
 
     def __len__(self):
         return len(self.img_data)
-    
-    def get_num_classes(self):
-        return len(set(self.txt_df['class'].astype(int)))
     
     def __getitem__(self, idx):
         # Not efficient loading, but just re-using code from coco
