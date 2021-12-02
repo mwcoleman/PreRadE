@@ -32,10 +32,6 @@ def collate_func(batch, dset='coco'):
         collated_batch['labels'] = [b['label'] for b in batch]
     
     return collated_batch
-    
-
-
-
 
 class Extractor:
     def __init__(self, cfg_path, batch_size,num_proposals=36,custom_model=False):
@@ -218,6 +214,7 @@ class Extractor:
             pass
         out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
         cv2.imshow('',out.get_image()) #[:,:,::-1]
+
 class PrepareImageInputs(object):
     """Convert an image to a model input
     The detectron uses resizing and normalization based on
@@ -305,7 +302,7 @@ def load_tsv(fname, topk=None):
     import sys
     csv.field_size_limit(sys.maxsize)
     start_time = time.time()
-    print("Start to load Faster-RCNN detected objects from %s" % fname)
+    print(f"\nStarting to load pre-extracted Faster-RCNN detected objects from {fname}\n")
     with open(fname, 'r') as f:
         reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
                         "num_boxes", "boxes", "features"], delimiter="\t")
@@ -324,7 +321,7 @@ def load_tsv(fname, topk=None):
             if topk is not None and len(data) == topk:
                 break
     elapsed_time = time.time() - start_time
-    print("Loaded %d images in file %s in %d seconds." % (len(data), fname, elapsed_time))
+    print(f"\n\nLoaded {len(data)} image features from {fname} in {elapsed_time:.2f} seconds.\n\n")
     return data
 
 

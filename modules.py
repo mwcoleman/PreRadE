@@ -16,27 +16,13 @@ from transformers import (
 )
 from transformers.models.visual_bert.modeling_visual_bert import VisualBertLMPredictionHead
 
-from pytorch_lightning.loggers import WandbLogger, wandb
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, LearningRateMonitor
+
 
 from utils import load_tsv
 
 
 class MMRad(pl.LightningModule):
-    @staticmethod
-    def add_model_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group("MMRad")
-        # Model config
-        parser.add_argument('--loadModelConfig', dest='load_model_config', default=None)
-
-        # Training hyperparams
-        parser.add_argument('--lr', type=float, default=2e-4)
-        parser.add_argument('--loadModel', dest='load_model', default=None)
-        parser.add_argument('--warmupRatio', dest='warmup_ratio', default=0.15, 
-                            help='decimal fraction of total training steps to schedule warmup')
-
-        return parent_parser
-
+  
     def __init__(self, args, train_size, tokenizer='bert-base-uncased'):
         super().__init__()
 
@@ -47,8 +33,16 @@ class MMRad(pl.LightningModule):
         self.visual_features_dim = 1024
 
         self.train_size = train_size
+        if args.load_model is None:
+            print(f"Initialising Tx backbone from scratch\n")
+            self.model = VisualBertModel(self.config)
+        else:
+            print(f"Loading transformer backbone from {args.load_model}\n")
+            self.model = VisualBertModel(self.config).from_pretrained(args.load_model)
 
-        self.model = VisualBertModel(self.config).from_pretrained("uclanlp/visualbert-vqa-coco-pre")
+        if args.freeze:
+            for param in self.model.parameters():
+                param.requires_grad = False
 
         self.__init_tokenizer(tok=tokenizer)
         self.__init_transforms()
@@ -226,7 +220,25 @@ class MMRadForClassification(MMRad):
         self.cls = nn.Linear(self.config.hidden_size, num_classes)
         # TODO: put this into args, make specific args for class
         self.img_only = False
+    def forward(self, **inputs):
+        return self.model(**inputs)
 
+    def training_step(self, batch, batch_idx):
+        loss, acc = self.shared_step(batch, batch_idx)
+
+        logs = {'train_loss': loss, 'train_acc': acc}
+
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
+        return loss
+    
+    def validation_step(self, batch, batch_idx):
+
+        loss, acc = self.shared_step(batch, batch_idx)
+
+        logs = {'val_loss': loss, 'val_acc': acc}        
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
+
+        return loss
     def shared_step(self, batch, batch_idx):
         # a batch should be a dict containing:
         #   - input_ids
@@ -291,8 +303,6 @@ class MMRadForClassification(MMRad):
         acc = (preds == labels).type(torch.float).mean()*100
     
         return total_loss,acc
-
-    
 
 class PretextProcessor:
     """Contains methods to mask etc"""
@@ -376,26 +386,26 @@ class PretextProcessor:
         pass
 
 class MMRadDM(pl.LightningDataModule):
-    @staticmethod
-    def add_model_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group("MMRadDM")
-        # Data splits
-        parser.add_argument("--train", dest='train_split', default='mscoco_train')
-        parser.add_argument("--valid", dest='valid_split', default='mscoco_val')
-        parser.add_argument("--test", default=None)
-        parser.add_argument("--dropLast", dest='drop_last', default=True)
-        parser.add_argument("--shuffle", default=True)
-        parser.add_argument("--topk", default=5120)
-        parser.add_argument("--topkVal", dest='val_topk', default=None)
+    # @staticmethod
+    # def add_model_specific_args(parent_parser):
+    #     parser = parent_parser.add_argument_group("MMRadDM")
+    #     # Data splits
+    #     parser.add_argument("--train", dest='train_split', default='mscoco_train')
+    #     parser.add_argument("--valid", dest='valid_split', default='mscoco_val')
+    #     parser.add_argument("--test", default=None)
+    #     parser.add_argument("--dropLast", dest='drop_last', default=True)
+    #     parser.add_argument("--shuffle", default=True)
+    #     parser.add_argument("--topk", default=5120)
+    #     parser.add_argument("--topkVal", dest='val_topk', default=None)
 
-        # Sizing
-        parser.add_argument('--batchSize', dest='batch_size', type=int, default=256)
-        parser.add_argument('--batchSizeVal', dest='valid_batch_size', type=int, default=256)
+    #     # Sizing
+    #     parser.add_argument('--batchSize', dest='batch_size', type=int, default=256)
+    #     parser.add_argument('--batchSizeVal', dest='valid_batch_size', type=int, default=256)
 
-        # Data path
-        parser.add_argument('--dataPath', dest='data_path', default="/media/matt/data21/mmRad/")
+    #     # Data path
+    #     parser.add_argument('--dataPath', dest='data_path', default="/media/matt/data21/mmRad/")
 
-        return parent_parser
+    #     return parent_parser
     
     
     def __init__(self, args):
@@ -474,16 +484,16 @@ class MMRadDM(pl.LightningDataModule):
         )
         return dl    
 
-class MyCallBack(Callback):
-    def on_epoch_start(self, trainer, pl_module):
-        print("\n")
-class InputMonitor(Callback):
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        if (batch_idx + 1) % trainer.log_every_n_steps == 0:
-            x, y = batch
-            logger = trainer.logger
-            logger.experiment.add_histogram("input", x, global_step=trainer.global_step)
-            logger.experiment.add_histogram("target", y, global_step=trainer.global_step)
+# class MyCallBack(Callback):
+#     def on_epoch_start(self, trainer, pl_module):
+#         print("\n")
+# class InputMonitor(Callback):
+#     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+#         if (batch_idx + 1) % trainer.log_every_n_steps == 0:
+#             x, y = batch
+#             logger = trainer.logger
+#             logger.experiment.add_histogram("input", x, global_step=trainer.global_step)
+#             logger.experiment.add_histogram("target", y, global_step=trainer.global_step)
 
 class CubDataset(Dataset):
     """CUB images + captions (1 each) for fine tuning
@@ -508,7 +518,7 @@ class CubDataset(Dataset):
         return len(set(self.txt_df['class'].astype(int)))
     
     def __getitem__(self, idx):
-        # Not efficient loading, but just re-using code from coco
+        # Re-using from coco - not efficient
 
         if torch.is_tensor(idx):
             idx = idx.tolist()
