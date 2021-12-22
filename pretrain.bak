@@ -25,22 +25,13 @@ if __name__=='__main__':
     ####
 
     ### DEBUG args
-    args.train_split = 'mscoco_train'
-    args.valid_split = 'mscoco_val'
-    args.run_name='delme'
-    args.epochs = 100
-    args.topk = 5120
+    args.train_split = 'cub_train'
+    args.valid_split = 'cub_valid'
+    args.run_name='debug-del'
+    args.epochs = 200
+    args.topk = 10240
     args.load_model = None
-    args.num_attention_heads = 12
-    args.num_tx_layers = 6
     # args.val_topk = None
-
-    # Logging & Callbacks
-    wandb_logger = WandbLogger(name=args.run_name, project='mmRad-coco-sweeps')
-    wandb_logger.experiment.config.update(args)
-    # # Used with sweep agent
-    wandb.init(config=wandb_logger.experiment.config)
-
 
     dm = MMRadDM(args)
     dm.setup(stage='fit')
@@ -53,7 +44,12 @@ if __name__=='__main__':
         print(f'Loading saved model from {args.load_cp_path}')
         model = MMRadForPretraining(args=args, train_size=dm.train_size).load_from_checkpoint(args.load_cp_path, args=args, train_size=dm.train_size)
     
+    # Logging & Callbacks
+    wandb_logger = WandbLogger(name=args.run_name, project='mmRad-CUB')
     wandb_logger.watch(model)
+    wandb_logger.experiment.config.update(args)
+
+
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
@@ -61,15 +57,13 @@ if __name__=='__main__':
         every_n_epochs=1
     )
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-    early_stopping = EarlyStopping(monitor='val_loss')
-    
+   
     # Reproducibility
     pl.seed_everything(808, workers=True)
 
     # Training
-    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback, lr_monitor, early_stopping], 
-                         log_every_n_steps=10, max_epochs=args.epochs, deterministic=True, 
+    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback, lr_monitor], 
+                         log_every_n_steps=10, max_epochs=args.epochs, deterministic=False, 
                          logger=wandb_logger, track_grad_norm=-1, fast_dev_run=False)
 
     print(f"\nBeginning training run with {args.topk} train, {args.val_topk} val examples from {args.train_split}. Training for {args.epochs} epochs...\n")

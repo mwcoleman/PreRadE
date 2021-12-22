@@ -25,40 +25,62 @@ class MMRad(pl.LightningModule):
   
     def __init__(self, args, train_size, tokenizer='bert-base-uncased'):
         super().__init__()
+        # wandb config needs conversion
+        self.save_hyperparameters(args) #vars(args)['_items']  
 
-        self.args = args
+        # self.args = args
         # TODO: Access from args / elsewhere:
-        self.config = VisualBertConfig(visual_embedding_dim=2048)
+        self.config = VisualBertConfig(visual_embedding_dim=self.hparams.visual_embedding_dim,
+                                       num_attention_heads=self.hparams.num_attention_heads,
+                                       dropout=self.hparams.dropout,
+                                       hidden_size=self.hparams.encoder_hidden_size,
+                                       num_hidden_layers=self.hparams.num_tx_layers)
         # Extracted features dim
         self.visual_features_dim = 1024
 
         self.train_size = train_size
-        if args.load_model is None:
+        
+        if self.hparams.load_model is None:
             print(f"Initialising Tx backbone from scratch\n")
             self.model = VisualBertModel(self.config)
         else:
-            print(f"Loading transformer backbone from {args.load_model}\n")
-            self.model = VisualBertModel(self.config).from_pretrained(args.load_model)
+            model_path = self.hparams.load_model
+            print(f"Loading transformer backbone from {model_path}\n")
+            self.model = VisualBertModel(self.config).from_pretrained(model_path)
 
-        if args.freeze:
+        if self.hparams.freeze:
             for param in self.model.parameters():
                 param.requires_grad = False
 
         self.__init_tokenizer(tok=tokenizer)
         self.__init_transforms()
-
         # All pretext data aug tasks contained here
         self.pp = PretextProcessor(self.tokenizer)
 
     def __init_transforms(self):
         """Linear transform of input embeddings (from obj. detector
         to input of Tx encoder."""
-        # TODO: fix up the 
-        self.transform_img_ft = nn.Linear(self.visual_features_dim, self.config.visual_embedding_dim)
-        self.transform_img_box = nn.Linear(4, self.config.visual_embedding_dim)
-        self.transform_ln_ft = nn.LayerNorm(self.config.visual_embedding_dim)
-        self.transform_ln_box = nn.LayerNorm(self.config.visual_embedding_dim)
+        self.transform_img_ft = nn.Sequential(
+            nn.Linear(self.visual_features_dim, self.config.visual_embedding_dim),
+            nn.LayerNorm(self.config.visual_embedding_dim)
+        )
+        self.transform_img_box = nn.Sequential(
+            nn.Linear(4, self.config.visual_embedding_dim),
+            nn.LayerNorm(self.config.visual_embedding_dim)
+        )
 
+
+        # self.transform_img_ft = nn.Linear(self.visual_features_dim, self.config.visual_embedding_dim)
+        # self.transform_img_box = nn.Linear(4, self.config.visual_embedding_dim)
+        # self.transform_ln_ft = nn.LayerNorm(self.config.visual_embedding_dim)
+        # self.transform_ln_box = nn.LayerNorm(self.config.visual_embedding_dim)
+    
+    def vis_pos_embeds(self, img_ft, img_box):
+        
+        embed_ft = self.transform_img_ft(img_ft)
+        embed_pos = self.transform_img_box(img_box)
+        return torch.div(torch.add(embed_ft, embed_pos), 2)
+    
     def __init_tokenizer(self, tok):
         
         if os.path.exists('./'+tok+'/'):
@@ -82,7 +104,7 @@ class MMRad(pl.LightningModule):
 
         logs = {'train_loss': loss, 'train_acc': acc}
 
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
         return loss
     
     def validation_step(self, batch, batch_idx):
@@ -91,7 +113,7 @@ class MMRad(pl.LightningModule):
         # result = pl.EvalResult(checkpoint_on = loss)
 
         logs = {'val_loss': loss, 'val_acc': acc}        
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
 
         return loss
 
@@ -100,14 +122,17 @@ class MMRad(pl.LightningModule):
     
     def configure_optimizers(self):
         
-        steps_per_epoch = self.train_size // self.args.batch_size
-        total_epochs = self.args.epochs
+        steps_per_epoch = self.train_size // self.hparams.batch_size
+        total_epochs = self.hparams.epochs
 
-        optimizer = AdamW(self.model.parameters(), lr=self.args.lr)
+        # optimizer = AdamW(self.model.parameters(), lr=self.hparams.lr)
+        optimizer = AdamW(self.parameters(), 
+                          lr=self.hparams.lr, 
+                          weight_decay=self.hparams.weight_decay)
 
         linear_warmup = get_linear_schedule_with_warmup(
             optimizer, 
-            num_warmup_steps=int(total_epochs*steps_per_epoch*self.args.warmup_ratio), 
+            num_warmup_steps=int(total_epochs*steps_per_epoch*self.hparams.warmup_ratio), 
             num_training_steps=total_epochs*steps_per_epoch, 
             # last_epoch=self.current_epoch
             )
@@ -116,8 +141,10 @@ class MMRad(pl.LightningModule):
                         'name':'learning_rate',
                         'interval':'step',
                         'frequency':1}
-
-        return [optimizer], [lr_scheduler]
+        if self.hparams.lr_scheduler:
+            return [optimizer], [lr_scheduler]
+        else:
+            return [optimizer]
 
 class MMRadForPretraining(MMRad):
     
@@ -143,10 +170,12 @@ class MMRadForPretraining(MMRad):
 
         # linear map img input to tx dim and add positions
         
-        embed_ft = self.transform_ln_ft(self.transform_img_ft(batch['img']['features']))
-        embed_pos =  self.transform_ln_box(self.transform_img_box(batch['img']['boxes']))
-        visual_embeds = torch.div(torch.add(embed_ft, embed_pos), 2)
-
+        # embed_ft = self.transform_ln_ft(self.transform_img_ft(batch['img']['features']))
+        # embed_pos =  self.transform_ln_box(self.transform_img_box(batch['img']['boxes']))
+        # visual_embeds = torch.div(torch.add(embed_ft, embed_pos), 2)
+        visual_embeds = self.vis_pos_embeds(img_ft=batch['img']['features'],
+                                            img_box=batch['img']['boxes'])
+        
         # TODO: Handle elsewhere (preproc)
         num_features = batch['img']['num_boxes'][0]
         visual_attention_mask=torch.ones((len(batch['img']['id']), num_features)).to(self.device)
@@ -187,7 +216,6 @@ class MMRadForPretraining(MMRad):
         sequence_output, pooled_output = outputs[:2]
         text_prediction_scores = self.text_prediction_head(sequence_output)
         # truncate to text ouput only
-        # text_logits = text_prediction_scores[:,:self.args.max_seq_len,:]
         text_logits = text_prediction_scores
         text_preds = text_logits[(labels > 0), :].argmax(1)
         filtered_labels = labels[(labels > 0)]
@@ -213,32 +241,29 @@ class MMRadForPretraining(MMRad):
 
 class MMRadForClassification(MMRad):
     """Adds head for image classification"""
-    def __init__(self, args, train_size, num_classes, tokenizer='bert-base-uncased'):
+    def __init__(self, args, train_size, n_classes, n_hidden=512, tokenizer='bert-base-uncased'):
         super().__init__(args, train_size, tokenizer=tokenizer)
-
-        self.dropout = nn.Dropout(self.config.hidden_dropout_prob)
-        self.cls = nn.Linear(self.config.hidden_size, num_classes)
+        
+        # self.dropout = nn.Dropout(self.config.hidden_dropout_prob)
+        # self.cls = nn.Linear(self.config.hidden_size, num_classes)
+        
+        self.mlp_block = nn.Sequential(
+                nn.Dropout(self.config.hidden_dropout_prob),
+                nn.Linear(self.config.hidden_size, n_hidden, bias=False),
+                nn.BatchNorm1d(n_hidden),
+                nn.ReLU(inplace=True),
+                nn.Dropout(self.config.hidden_dropout_prob),
+                nn.Linear(n_hidden, n_classes, bias=True),
+            )
+        
+        
         # TODO: put this into args, make specific args for class
-        self.img_only = False
+        self.img_only = args.img_only
+        if self.img_only:
+            print(f"Setting text inputs to 0")
     def forward(self, **inputs):
         return self.model(**inputs)
 
-    def training_step(self, batch, batch_idx):
-        loss, acc = self.shared_step(batch, batch_idx)
-
-        logs = {'train_loss': loss, 'train_acc': acc}
-
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
-        return loss
-    
-    def validation_step(self, batch, batch_idx):
-
-        loss, acc = self.shared_step(batch, batch_idx)
-
-        logs = {'val_loss': loss, 'val_acc': acc}        
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.args.batch_size)
-
-        return loss
     def shared_step(self, batch, batch_idx):
         # a batch should be a dict containing:
         #   - input_ids
@@ -260,10 +285,12 @@ class MMRadForClassification(MMRad):
             batch['txt']['pos_ids'] = torch.ones_like(batch['txt']['input_ids']).to(self.device)
             batch['txt']['pos_ids'] *= torch.arange(0,batch['txt']['input_ids'].size()[1], 1).to(self.device)
         
-        # linear map img input to tx dim and add positions
-        embed_ft = self.transform_ln_ft(self.transform_img_ft(batch['img']['features']))
-        embed_pos =  self.transform_ln_box(self.transform_img_box(batch['img']['boxes']))
-        visual_embeds = torch.div(torch.add(embed_ft, embed_pos), 2)
+        ## img input to tx dim and add positions
+        # embed_ft = self.transform_ln_ft(self.transform_img_ft(batch['img']['features']))
+        # embed_pos =  self.transform_ln_box(self.transform_img_box(batch['img']['boxes']))
+        # visual_embeds = torch.div(torch.add(embed_ft, embed_pos), 2)
+        visual_embeds = self.vis_pos_embeds(img_ft=batch['img']['features'],
+                                            img_box=batch['img']['boxes'])
 
         # TODO: Handle elsewhere (preproc)
         num_features = batch['img']['num_boxes'][0]
@@ -292,14 +319,14 @@ class MMRadForClassification(MMRad):
         # sequence_output.shape = (batch_size, max_seq_len, hidden_dim)
         # pooled_output.shape = (batch_size, 768)
         sequence_output, pooled_output = outputs[:2]
-        cls_scores = self.cls(pooled_output)
-        preds = cls_scores.argmax(1)
+        logits = self.mlp_block(pooled_output)
+        preds = logits.argmax(1)
 
         total_loss = None
         acc = None
 
         loss_fct = CrossEntropyLoss()
-        total_loss = loss_fct(cls_scores, labels)
+        total_loss = loss_fct(logits, labels)
         acc = (preds == labels).type(torch.float).mean()*100
     
         return total_loss,acc
@@ -318,22 +345,31 @@ class PretextProcessor:
         #                         for s in batch['txt']['raw']]
         # pad_fct = lambda a,i: a[0:i] if len(a) > i else a + [0]*(i-len(a))
         # TODO: .batch_encode_plus
-        encoded = [self.tok.encode_plus(
-            text=sent,
+        encoded = self.tok(
+            text=batch['txt']['raw'],
             add_special_tokens=True,
             max_length = self.max_seq_len,
             truncation=True,
             padding='max_length',
             return_attention_mask = True,
             return_tensors = 'pt',
-        ) for sent in batch['txt']['raw']]
+        )     
+        # encoded = [self.tok.encode_plus(
+        #     text=sent,
+        #     add_special_tokens=True,
+        #     max_length = self.max_seq_len,
+        #     truncation=True,
+        #     padding='max_length',
+        #     return_attention_mask = True,
+        #     return_tensors = 'pt',
+        # ) for sent in batch['txt']['raw']]
 
-        # TODO: fixup device calls
-        # for now, leave input ids on cpu for random choice (fix)
-        batch['txt']['input_ids'] = torch.vstack([e['input_ids'] for e in encoded])
-        batch['txt']['att_mask'] = torch.vstack([e['attention_mask'] for e in encoded]).to(self.device)
-        # batch['txt']['input_ids'] = torch.tensor([pad_fct(sent,self.max_seq_len) for sent in batch['txt']['tokens']],
-        #                                     dtype=torch.int)  
+        # batch['txt']['input_ids'] = torch.vstack([e['input_ids'] for e in encoded])
+        # batch['txt']['att_mask'] = torch.vstack([e['attention_mask'] for e in encoded]).to(self.device)
+        
+        batch['txt']['input_ids'] = encoded['input_ids']
+        batch['txt']['att_mask'] = encoded['attention_mask'].to(self.device)
+
         
         # Generate other needed inputs for vbert/tx models
         batch['txt']['type_ids'] = torch.zeros_like(batch['txt']['input_ids']).to(self.device)
@@ -386,28 +422,6 @@ class PretextProcessor:
         pass
 
 class MMRadDM(pl.LightningDataModule):
-    # @staticmethod
-    # def add_model_specific_args(parent_parser):
-    #     parser = parent_parser.add_argument_group("MMRadDM")
-    #     # Data splits
-    #     parser.add_argument("--train", dest='train_split', default='mscoco_train')
-    #     parser.add_argument("--valid", dest='valid_split', default='mscoco_val')
-    #     parser.add_argument("--test", default=None)
-    #     parser.add_argument("--dropLast", dest='drop_last', default=True)
-    #     parser.add_argument("--shuffle", default=True)
-    #     parser.add_argument("--topk", default=5120)
-    #     parser.add_argument("--topkVal", dest='val_topk', default=None)
-
-    #     # Sizing
-    #     parser.add_argument('--batchSize', dest='batch_size', type=int, default=256)
-    #     parser.add_argument('--batchSizeVal', dest='valid_batch_size', type=int, default=256)
-
-    #     # Data path
-    #     parser.add_argument('--dataPath', dest='data_path', default="/media/matt/data21/mmRad/")
-
-    #     return parent_parser
-    
-    
     def __init__(self, args):
         super().__init__()
 
@@ -437,27 +451,22 @@ class MMRadDM(pl.LightningDataModule):
             if self.train_split=='mscoco_train':
                 self.train_dset = CocoDataset(self.data_path+'captions_train2017.json',
                         self.data_path+'img_features/mscoco-train_2017-custom.tsv', topk=self.topk)
-                self.train_size = len(self.train_dset)
             # Will always val on coco if train on coco
             # if self.valid_split=='mscoco_val':
                 self.valid_dset = CocoDataset(self.data_path+'captions_val2017.json',
                         self.data_path+'img_features/mscoco-val_2017-custom.tsv', topk=self.val_topk)
-                self.valid_size = len(self.valid_dset)
             
             elif self.train_split=='cub_train':
                 # CUB dset is not split into train/val
                 cubdata = CubDataset(self.data_path+'CUB/caption_label_data.csv',
                         self.data_path+'CUB/cub_all.tsv', topk=self.topk)
-                train_set_size = int(len(cubdata)*0.8)
+                train_set_size = int(len(cubdata)*0.9)
                 valid_set_size = len(cubdata) - train_set_size
                 self.train_dset, self.valid_dset = random_split(cubdata, [train_set_size, valid_set_size])
-                self.train_size = len(self.train_dset)
-
                 # Store number of classes
                 self.num_classes = cubdata.get_num_classes()
-
-
-
+        self.train_size,self.valid_size = len(self.train_dset), len(self.valid_dset)
+        print(f"Size of train / val splits: {self.train_size} / {self.valid_size}")
 
         if stage=='test' or stage is None:
             pass
@@ -483,17 +492,6 @@ class MMRadDM(pl.LightningDataModule):
             num_workers=self.num_workers
         )
         return dl    
-
-# class MyCallBack(Callback):
-#     def on_epoch_start(self, trainer, pl_module):
-#         print("\n")
-# class InputMonitor(Callback):
-#     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-#         if (batch_idx + 1) % trainer.log_every_n_steps == 0:
-#             x, y = batch
-#             logger = trainer.logger
-#             logger.experiment.add_histogram("input", x, global_step=trainer.global_step)
-#             logger.experiment.add_histogram("target", y, global_step=trainer.global_step)
 
 class CubDataset(Dataset):
     """CUB images + captions (1 each) for fine tuning
@@ -582,4 +580,32 @@ class CocoDataset(Dataset):
                  }
         return sample
 
+### Callbacks
 
+
+
+# class WandbImagePredCallback(pl.Callback):
+#     """Logs the input images and output predictions of a module.
+    
+#     Predictions and labels are logged as class indices."""
+    
+#     def __init__(self, val_samples, num_samples=32):
+#         super().__init__()
+#         self.val_imgs, self.val_labels = val_samples
+#         self.val_imgs = self.val_imgs[:num_samples]
+#         self.val_labels = self.val_labels[:num_samples]
+          
+#     def on_validation_epoch_end(self, trainer, pl_module):
+#         val_imgs = self.val_imgs.to(device=pl_module.device)
+
+#         logits = pl_module(val_imgs)
+#         preds = torch.argmax(logits, 1)
+
+#         trainer.logger.experiment.log({
+#             "val/examples": [
+#                 wandb.Image(x, caption=f"Pred:{pred}, Label:{y}") 
+#                     for x, pred, y in zip(val_imgs, preds, self.val_labels)
+#                 ],
+#             "global_step": trainer.global_step
+#             })        
+    

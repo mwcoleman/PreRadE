@@ -26,20 +26,21 @@ if __name__=='__main__':
     ### DEBUG args
     args.train_split = 'cub_train'
     args.valid_split = 'cub_valid'
-    args.run_name='FT-30-scratch_to_mlm-5e-5'
+    args.run_name='FT-30-scratch_mlm-frozen-1e-3_0.9-split'
     args.epochs=30
     args.topk = 10240
     args.load_model = '/media/matt/data21/mmRad/checkpoints/PT/PT-scratch-mlm/backbone/' #"uclanlp/visualbert-vqa-coco-pre" #"/media/matt/data21/mmRad/checkpoints/PT/CUB-Full-MLM/backbone/"
-    args.freeze=False # Freeze the backbone (init from scratch)
+    args.freeze=True # Freeze the backbone (init from scratch)
     args.img_only = False
-    args.lr = 5e-5
+    args.lr = 1e-3 #5e-5
+    args.lr_scheduler = False
     # args.val_topk = 5120
     
     dm = MMRadDM(args)
     dm.setup(stage='fit')
     
     if args.load_cp_path is None:
-        model = MMRadForClassification(args=args, train_size=dm.train_size, num_classes=dm.num_classes)
+        model = MMRadForClassification(args=args, train_size=dm.train_size, n_classes=dm.num_classes)
     else:
         # Load a pretrained model for (further) pretraining
         print(f'Loading saved model from {args.load_cp_path}')
@@ -57,10 +58,15 @@ if __name__=='__main__':
     )
     lr_monitor = LearningRateMonitor(logging_interval='step')
    
-   
+    from data_monitor import TrainingDataMonitor
+
+    # log the histograms of input data sent to LightningModule.training_step
+    # data_monitor = TrainingDataMonitor(log_every_n_steps=25)
+
+
+
     # Reproducibility
     pl.seed_everything(808, workers=True)
-
     trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback, lr_monitor], 
                          log_every_n_steps=10, max_epochs=args.epochs, deterministic=False, 
                          logger=wandb_logger, track_grad_norm=-1, fast_dev_run=False)
@@ -69,15 +75,17 @@ if __name__=='__main__':
     trainer.fit(model, dm)
 
     # Save model states
+
     print(f"PL Model and state saved to {checkpoint_callback.best_model_path}")
     wandb_logger.experiment.config['pl_framework_path'] = checkpoint_callback.best_model_path
+    
     if args.save_backbone:
         model = MMRadForClassification(args=args,
                                        train_size=dm.train_size, 
-                                       num_classes=dm.num_classes).load_from_checkpoint(checkpoint_callback.best_model_path,
+                                       n_classes=dm.num_classes).load_from_checkpoint(checkpoint_callback.best_model_path,
                                                                                         args=args,
                                                                                         train_size=dm.train_size, 
-                                                                                        num_classes=dm.num_classes)
+                                                                                        n_classes=dm.num_classes)
         model.model.save_pretrained(save_directory=args.save_cp_path + args.run_name + '/backbone/')
         print(f"Tx backbone saved to {args.save_cp_path + args.run_name + '/backbone/'}")
         wandb_logger.experiment.config['backbone_path'] = args.save_cp_path + args.run_name + '/backbone/'

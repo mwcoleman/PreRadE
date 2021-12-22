@@ -17,7 +17,8 @@ from detectron2 import model_zoo
 from detectron2.config import get_cfg
 from detectron2.utils.visualizer import Visualizer
 
-
+import pytorch_lightning as pl
+import wandb
 
 # Custom collate for dataloader to keep images in list
 # due to ragged shape
@@ -302,7 +303,7 @@ def load_tsv(fname, topk=None):
     import sys
     csv.field_size_limit(sys.maxsize)
     start_time = time.time()
-    print(f"\nStarting to load pre-extracted Faster-RCNN detected objects from {fname}\n")
+    print(f"\nStarting to load pre-extracted Faster-RCNN detected objects from {fname}...")
     with open(fname, 'r') as f:
         reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
                         "num_boxes", "boxes", "features"], delimiter="\t")
@@ -321,8 +322,9 @@ def load_tsv(fname, topk=None):
             if topk is not None and len(data) == topk:
                 break
     elapsed_time = time.time() - start_time
-    print(f"\n\nLoaded {len(data)} image features from {fname} in {elapsed_time:.2f} seconds.\n\n")
+    print(f"Loaded {len(data)} image features from {fname} in {elapsed_time:.2f} seconds.\n\n")
     return data
+
 
 
 # def plot_sample_coco(coco_annot_path, coco_img_path):
