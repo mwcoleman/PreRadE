@@ -15,6 +15,10 @@ def parse_args(stage):
     parser.add_argument('--save_backbone', dest='save_backbone', default=True)
     # location to the pl framework checkpoint (e.g. further pretraining)
     parser.add_argument('--load_cp_path', dest='load_cp_path', default=None)
+    ## Tasks ##
+    parser.add_argument('--tasks', default=None)
+
+
 
     ##### MODEL #####
     parser.add_argument('--load_model', dest='load_model', default=None)

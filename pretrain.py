@@ -33,6 +33,7 @@ if __name__=='__main__':
     args.load_model = None
     args.num_attention_heads = 12
     args.num_tx_layers = 6
+    args.tasks = "['mlm', 'mfr']"
     # args.val_topk = None
 
     # Logging & Callbacks
@@ -64,11 +65,13 @@ if __name__=='__main__':
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
     early_stopping = EarlyStopping(monitor='val_loss')
     
+    callbacks=[checkpoint_callback, lr_monitor, early_stopping]
+
     # Reproducibility
     pl.seed_everything(808, workers=True)
 
     # Training
-    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback, lr_monitor, early_stopping], 
+    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=callbacks, 
                          log_every_n_steps=10, max_epochs=args.epochs, deterministic=True, 
                          logger=wandb_logger, track_grad_norm=-1, fast_dev_run=False)
 
