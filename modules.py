@@ -199,39 +199,25 @@ class MMRadForPretraining(MMRad):
         text_preds = text_logits[(txt_labels > 0), :].argmax(1)
         filtered_labels = txt_labels[(txt_labels > 0)]
 
-        # pooled_output = self.seq_relationship(pooled_output)
-        loss = None
-        acc = None
-        if labels is not None:
-            # TODO: Increase size for txt+image
-            total_size = batch['txt']['att_mask'].size(-1) + batch['img']['att_mask'].size(-1)
-            if labels.size(-1) != total_size:
-                raise ValueError(
-                    f"The labels provided should have same sequence length as total attention mask. "
-                    f"Found labels with sequence length {labels.size(-1)}, expected {total_size}."
-                )
-
-            loss_fct = CrossEntropyLoss()
-            # total_loss = loss_fct(text_logits.contiguous().view(-1, self.config.vocab_size), labels.view(-1))
-            loss = loss_fct(text_logits.view(-1, self.config.vocab_size), txt_labels.view(-1))
-            acc = (text_preds == filtered_labels).type(torch.float).mean()*100
-        return loss,acc
+        loss_fct = CrossEntropyLoss()
+        # total_loss = loss_fct(text_logits.contiguous().view(-1, self.config.vocab_size), labels.view(-1))
+        loss = loss_fct(text_logits.view(-1, self.config.vocab_size), txt_labels.view(-1))
+        acc = (text_preds == filtered_labels).type(torch.float).mean()*100
+        return {'loss':loss, 'acc':acc}
 
     def mfr_step(self, batch, batch_idx):
         num_features = batch['img']['num_boxes'][0]
         batch_size = self.hparams.batch_size
 
-        # TODO: Masking before projecting?? Check
+        # TODO: Currently masking before projecting..
         batch = self.pp.mask_img(batch) 
         batch = self.pp.img_preproc(batch, model=self)     
         #Dummy text labels
         txt_labels = torch.full_like(batch['txt']['input_ids'], -100, device=self.device)
         
-        img_labels = torch.full((batch_size,num_features, self.visual_features_dim),-100, device=self.device)
         label_mask = batch['img']['label_mask']
         # update labels with features that were masked
-        # img_labels[label_mask] = batch['img']['features'][label_mask]
-        # labels = torch.hstack((txt_labels,img_labels))
+        img_labels = batch['img']['features']
 
         outputs = self(
             input_ids=batch['txt']['input_ids'],
@@ -254,38 +240,40 @@ class MMRadForPretraining(MMRad):
         txt_sequence, img_sequence = torch.split(sequence_output, [txt_labels.shape[1], img_labels.shape[1]], dim=1)
 
         img_projected = self.image_mfr_head(img_sequence)
-        loss_fct = MSELoss
-
+        loss_fct = MSELoss()
+        
         loss = loss_fct(img_projected[label_mask], img_labels[label_mask])
-        acc = None
-        return loss, acc
-
+        # eps = 0.5
+        # acc = 100*torch.sum(torch.sum( (torch.mean(img_projected[label_mask], dim=1) - 
+        #                  torch.mean(img_labels[label_mask], dim=1)) < eps ))/batch_size
+        
+        return {'loss':loss}
     
     def training_step(self, batch, batch_idx):
         # Sample a pretext task
         task = random.choice(self.hparams.tasks)
 
         # Preprocess based on the pretext tasks
-        loss, acc = self.shared_step(batch, batch_idx, task)
-        logs = {'train_loss': loss, 'train_acc': acc}
+        metrics = self.shared_step(batch, batch_idx, task)
+        logs = {'train_'+task+'_'+k:v for k,v in metrics.items()}#{'train_loss': loss, 'train_acc': acc}
         self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
-        return loss
+        return metrics['loss']
     
     def validation_step(self, batch, batch_idx):
         tot_loss = 0
-        tot_acc = 0
-        logs = {}
+        all_logs = {}
         for task in self.hparams.tasks:
+            metrics = self.shared_step(batch, batch_idx, task)
+            tot_loss += metrics['loss']
 
-            loss, acc = self.shared_step(batch, batch_idx, task)
-            tot_loss += loss
-            tot_acc += acc
-            logs['val_loss_'+task] = loss
+            logs = {'val_'+task+'_'+k:v for k,v in metrics.items()}
+            all_logs.update(logs)
+            
             # logs = {'val_loss': loss, 'val_acc': acc}        
-        logs['val_loss'] = tot_loss/len(self.hparams.tasks)
-        logs['val_acc'] = tot_acc/len(self.hparams.tasks)
+        logs['val_avg_loss'] = tot_loss/len(self.hparams.tasks)
+        # logs['val_acc'] = tot_acc/len(self.hparams.tasks)
         self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
-        return logs['val_loss']
+        return logs['val_avg_loss']
 
     def shared_step(self, batch, batch_idx, task):
 
@@ -298,8 +286,8 @@ class MMRadForPretraining(MMRad):
            
 
         # Call relevant task step
-        loss, acc = self.task_step[task](batch, batch_idx)
-        return loss, acc
+        metrics = self.task_step[task](batch, batch_idx)
+        return metrics
 
        
  

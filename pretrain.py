@@ -27,7 +27,7 @@ if __name__=='__main__':
     ### DEBUG args
     args.train_split = 'mscoco_train'
     args.valid_split = 'mscoco_val'
-    args.run_name='delme'
+    args.run_name='delme-mfr-mlm'
     args.epochs = 100
     args.topk = 5120
     args.load_model = None
@@ -57,13 +57,13 @@ if __name__=='__main__':
     wandb_logger.watch(model)
 
     checkpoint_callback = ModelCheckpoint(
-        monitor="val_loss",
+        monitor="val_avg_loss",
         dirpath=args.save_cp_path + args.run_name + '/pl_framework/',
         every_n_epochs=1
     )
     lr_monitor = LearningRateMonitor(logging_interval='step')
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-    early_stopping = EarlyStopping(monitor='val_loss')
+    early_stopping = EarlyStopping(monitor='val_avg_loss')
     
     callbacks=[checkpoint_callback, lr_monitor, early_stopping]
 
