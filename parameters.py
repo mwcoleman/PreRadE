@@ -6,6 +6,7 @@ def parse_args(stage):
 
     ##### TRAINING #####
     parser.add_argument('--name', dest='run_name', default='debug_4')
+    parser.add_argument('--log_offline', default=False, type=bool)
     parser.add_argument('--seed', type=int, default=808, help='random seed')
     parser.add_argument('--max_seq_len', dest='max_seq_len', type=int, default=20)
     parser.add_argument('--epochs', dest='epochs', type=int, default=200)
@@ -58,7 +59,7 @@ def parse_args(stage):
     
     ##### PL #####
     parser = pl.Trainer.add_argparse_args(parser)
-
+    
 
     args = parser.parse_args()
 

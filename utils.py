@@ -22,12 +22,13 @@ import wandb
 
 # Custom collate for dataloader to keep images in list
 # due to ragged shape
+# Used only for image feature extraction (ID and image data only)
 def collate_func(batch, dset='coco'):
     
     images = [b['image'] for b in batch]
-    captions = [b['caption'] for b in batch]
+    # captions = [b['caption'] for b in batch]
     ids = [b['img_id'] for b in batch]
-    collated_batch = {'images':images, 'captions':captions, 'img_ids':ids}
+    collated_batch = {'images':images, 'img_ids':ids} #,'captions':captions}
 
     if dset=='cub':
         collated_batch['labels'] = [b['label'] for b in batch]
@@ -37,7 +38,7 @@ def collate_func(batch, dset='coco'):
 class Extractor:
     def __init__(self, cfg_path, batch_size,num_proposals=36,custom_model=False):
         # TODO: args params
-        # NMS params - LXMERT uses 36 features
+        # NMS params - Use 36 features
         self.min_boxes = num_proposals
         self.max_boxes = num_proposals
         
@@ -257,19 +258,19 @@ class PrepareImageInputs(object):
         
         
     
-    def load_mimic(self, img_path, caption_path):
-        """Load and store images in a list
-        detectron expects in format bgr
-        caption_path: path to .json with image_id corresponding to file name
-                      and caption corresponding to text report
-        """
+    # def load_mimic(self, img_path, caption_path):
+    #     """Load and store images in a list
+    #     detectron expects in format bgr
+    #     caption_path: path to .json with image_id corresponding to file name
+    #                   and caption corresponding to text report
+    #     """
 
-        # with open(caption_path) as f:
-        #     a = json.load(f)
-        # image_id = a['image_id']
+    #     # with open(caption_path) as f:
+    #     #     a = json.load(f)
+    #     # image_id = a['image_id']
 
-        # # for im in img_path:
-        #     img = 
+    #     # # for im in img_path:
+    #     #     img = 
 
 class FeatureWriterTSV(object):
     def __init__(self, fname):

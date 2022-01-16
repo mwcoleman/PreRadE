@@ -27,14 +27,15 @@ if __name__=='__main__':
     args.train_split = 'cub_train'
     args.valid_split = 'cub_valid'
     args.run_name='FT-30-scratch_mlm-frozen-1e-3_0.9-split'
-    args.epochs=30
-    args.topk = 10240
-    args.load_model = '/media/matt/data21/mmRad/checkpoints/PT/PT-scratch-mlm/backbone/' #"uclanlp/visualbert-vqa-coco-pre" #"/media/matt/data21/mmRad/checkpoints/PT/CUB-Full-MLM/backbone/"
+    args.epochs = 30
+    args.topk = 512 #10240
+    args.load_model = None # '/media/matt/data21/mmRad/checkpoints/PT/PT-scratch-mlm/backbone/' #"uclanlp/visualbert-vqa-coco-pre" #"/media/matt/data21/mmRad/checkpoints/PT/CUB-Full-MLM/backbone/"
     args.freeze=True # Freeze the backbone (init from scratch)
     args.img_only = False
     args.lr = 1e-3 #5e-5
     args.lr_scheduler = False
     # args.val_topk = 5120
+    args.img_only = True
     
     dm = MMRadDM(args)
     dm.setup(stage='fit')
@@ -42,7 +43,7 @@ if __name__=='__main__':
     if args.load_cp_path is None:
         model = MMRadForClassification(args=args, train_size=dm.train_size, n_classes=dm.num_classes)
     else:
-        # Load a pretrained model for (further) pretraining
+        # Load a pretrained model for (further) training
         print(f'Loading saved model from {args.load_cp_path}')
         model = MMRadForClassification(args=args, train_size=dm.train_size).load_from_checkpoint(args.load_cp_path, args=args, train_size=dm.train_size)
     

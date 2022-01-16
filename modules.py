@@ -2,7 +2,7 @@ import os, json, random
 import torch
 from torch import nn
 import numpy as np
-from torch.nn import CrossEntropyLoss, MSELoss, GELU
+from torch.nn import CrossEntropyLoss, MSELoss, GELU, BCELoss
 from torch.nn.modules.normalization import LayerNorm
 from torch.utils.data import DataLoader, Dataset, random_split
 import pytorch_lightning as pl
@@ -27,17 +27,14 @@ class MMRad(pl.LightningModule):
   
     def __init__(self, args, train_size, tokenizer='bert-base-uncased'):
         super().__init__()
-        # wandb config needs conversion
-        self.save_hyperparameters(args) #vars(args)['_items']  
+        self.save_hyperparameters(args)
 
-        # self.args = args
-        # TODO: Access from args / elsewhere:
         self.config = VisualBertConfig(visual_embedding_dim=self.hparams.visual_embedding_dim,
                                        num_attention_heads=self.hparams.num_attention_heads,
                                        dropout=self.hparams.dropout,
                                        hidden_size=self.hparams.encoder_hidden_size,
                                        num_hidden_layers=self.hparams.num_tx_layers)
-        # Extracted features dim
+        # Extracted features
         self.visual_features_dim = 1024
 
         self.train_size = train_size
@@ -62,13 +59,16 @@ class MMRad(pl.LightningModule):
     def __init_transforms(self):
         """Linear transform of input embeddings (from obj. detector
         to input of Tx encoder."""
+        # self.config.visual_embedding_dim gets overidden by a preloaded model.
+        # So use this instead
+        in_features_dim = self.model.embeddings.visual_projection.in_features
         self.transform_img_ft = nn.Sequential(
-            nn.Linear(self.visual_features_dim, self.config.visual_embedding_dim),
-            nn.LayerNorm(self.config.visual_embedding_dim)
+            nn.Linear(self.visual_features_dim, in_features_dim),
+            nn.LayerNorm(in_features_dim)
         )
         self.transform_img_box = nn.Sequential(
-            nn.Linear(4, self.config.visual_embedding_dim),
-            nn.LayerNorm(self.config.visual_embedding_dim)
+            nn.Linear(4, in_features_dim),
+            nn.LayerNorm(in_features_dim)
        )
 
     
@@ -149,13 +149,13 @@ class MMRadForPretraining(MMRad):
         super().__init__(args, train_size, tokenizer=tokenizer)
 
         self.__init_pretraining_heads()
-        self.task_step = {'mlm':self.mlm_step, 'mfr':self.mfr_step}
+        self.task_step = {'mlm':self.mlm_step, 'mfr':self.mfr_step, 'itm':self.itm_step}
         self.hparams.tasks = literal_eval(self.hparams.tasks)
 
 
     def __init_pretraining_heads(self):
         self.text_prediction_head = VisualBertLMPredictionHead(self.config)
-        self.seq_relationship = nn.Linear(self.config.hidden_size, 2)
+        self.seq_relationship_head = nn.Linear(self.config.hidden_size, 2)
         self.image_mfr_head = nn.Sequential(
                 nn.Linear(self.config.hidden_size, self.visual_features_dim),
                 GELU(),
@@ -165,13 +165,13 @@ class MMRadForPretraining(MMRad):
     def mlm_step(self, batch, batch_idx):
         batch = self.pp.mask_txt(batch)
         # TODO: Fix this up so it can be called in shared step (see mfr_step)
+        batch = self.pp.img_vectorize(batch, model=self)     
 
-        batch = self.pp.img_preproc(batch, model=self)     
         txt_labels = batch['txt']['masked_labels']
         #Dummy visual labels
         img_labels = torch.full((txt_labels.size()[0],36),-100, device=self.device)
         
-        labels = torch.hstack((txt_labels,img_labels))
+        # labels = torch.hstack((txt_labels,img_labels))
 
         outputs = self(
             input_ids=batch['txt']['masked_input_ids'],
@@ -206,12 +206,12 @@ class MMRadForPretraining(MMRad):
         return {'loss':loss, 'acc':acc}
 
     def mfr_step(self, batch, batch_idx):
-        num_features = batch['img']['num_boxes'][0]
-        batch_size = self.hparams.batch_size
+        # num_features = batch['img']['num_boxes'][0]
+        # batch_size = self.hparams.batch_size
 
-        # TODO: Currently masking before projecting..
+        # Mask before projection
         batch = self.pp.mask_img(batch) 
-        batch = self.pp.img_preproc(batch, model=self)     
+        batch = self.pp.img_vectorize(batch, model=self)     
         #Dummy text labels
         txt_labels = torch.full_like(batch['txt']['input_ids'], -100, device=self.device)
         
@@ -248,9 +248,37 @@ class MMRadForPretraining(MMRad):
         #                  torch.mean(img_labels[label_mask], dim=1)) < eps ))/batch_size
         
         return {'loss':loss}
-    
+
+    def itm_step(self, batch, batch_idx):
+
+        batch = self.pp.itm_sampling(batch)        
+        batch = self.pp.img_vectorize(batch, model=self)     
+        
+        outputs = self(
+            input_ids=batch['txt']['input_ids'],
+            attention_mask=batch['txt']['att_mask'],
+            # token_type_ids=batch['txt']['type_ids'],    # Let model auto-compute
+            # position_ids=batch['txt']['pos_ids'],       # let model auto (use absolute pos)
+            head_mask=None,
+            inputs_embeds=None,
+            visual_embeds=batch['img']['visual_embeds'],
+            visual_attention_mask=batch['img']['att_mask'],
+            visual_token_type_ids=None,
+            image_text_alignment=None,
+            output_attentions=False,
+            output_hidden_states=False,
+            return_dict=True,
+        )
+
+        sequence_output, pooled_output = outputs[:2]
+        seq_relationship_score = self.seq_relationship_head(pooled_output)
+        loss_fct = nn.CrossEntropyLoss()
+        loss = loss_fct(seq_relationship_score.view(-1,2), batch['is_matched'].view(-1))
+        acc = (batch['is_matched'].view(-1) == seq_relationship_score.argmax(1).view(-1)).type(torch.float).mean()*100
+        return {'loss':loss, 'acc':acc}             
+        
     def training_step(self, batch, batch_idx):
-        # Sample a pretext task
+        # Sample a pretext task for each iteration
         task = random.choice(self.hparams.tasks)
 
         # Preprocess based on the pretext tasks
@@ -262,6 +290,7 @@ class MMRadForPretraining(MMRad):
     def validation_step(self, batch, batch_idx):
         tot_loss = 0
         all_logs = {}
+        # Validation step calculates loss for all selected tasks
         for task in self.hparams.tasks:
             metrics = self.shared_step(batch, batch_idx, task)
             tot_loss += metrics['loss']
@@ -285,9 +314,8 @@ class MMRadForPretraining(MMRad):
         batch = self.pp.tokenize_pad_vectorize(batch)
            
 
-        # Call relevant task step
-        metrics = self.task_step[task](batch, batch_idx)
-        return metrics
+        # Run sampled task, return results as a dict
+        return self.task_step[task](batch, batch_idx)
 
        
  
@@ -312,9 +340,7 @@ class MMRadForClassification(MMRad):
             )
         
         
-        # TODO: put this into args, make specific args for class
-        self.img_only = args.img_only
-        if self.img_only:
+        if self.hparams.img_only:
             print(f"Setting text inputs to 0")
     def forward(self, **inputs):
         return self.model(**inputs)
@@ -329,21 +355,19 @@ class MMRadForClassification(MMRad):
         #   - visual_attention_mask
     
         # process txt
-        if not self.img_only:
+        if not self.hparams.img_only:
             batch = self.pp.tokenize_pad_vectorize(batch)
             batch['txt']['input_ids'] = batch['txt']['input_ids'].to(self.device)
         else:
-            # TODO: device calls
-            batch['txt']['input_ids'] = torch.zeros(len(batch), self.max_seq_len).to(self.device)
-            batch['txt']['att_mask'] = torch.zeros(len(batch), self.max_seq_len).to(self.device)
-            batch['txt']['type_ids'] = torch.zeros(len(batch), self.max_seq_len).to(self.device)
-            batch['txt']['pos_ids'] = torch.ones_like(batch['txt']['input_ids']).to(self.device)
-            batch['txt']['pos_ids'] *= torch.arange(0,batch['txt']['input_ids'].size()[1], 1).to(self.device)
+            batch_size = len(batch['img']['id'])
+            seq_len = self.hparams.max_seq_len
+
+            batch['txt']['input_ids'] = torch.zeros(batch_size, seq_len, device=self.device, dtype=torch.int)
+            batch['txt']['att_mask'], batch['txt']['type_ids'] = batch['txt']['input_ids'], batch['txt']['input_ids']
+            batch['txt']['pos_ids'] = torch.ones(batch_size, seq_len, device=self.device)
+            batch['txt']['pos_ids'] *= torch.arange(0,seq_len, 1, device=self.device)
         
         ## img input to tx dim and add positions
-        # embed_ft = self.transform_ln_ft(self.transform_img_ft(batch['img']['features']))
-        # embed_pos =  self.transform_ln_box(self.transform_img_box(batch['img']['boxes']))
-        # visual_embeds = torch.div(torch.add(embed_ft, embed_pos), 2)
         visual_embeds = self.vis_pos_embeds(img_ft=batch['img']['features'],
                                             img_box=batch['img']['boxes'])
 
@@ -369,8 +393,6 @@ class MMRadForClassification(MMRad):
             return_dict=True,
         )
 
-        # Run through PT heads - MLM only for now.
-        # Most code borrowed from HF visualbertforpretraining
         # sequence_output.shape = (batch_size, max_seq_len, hidden_dim)
         # pooled_output.shape = (batch_size, 768)
         sequence_output, pooled_output = outputs[:2]
@@ -387,32 +409,33 @@ class MMRadForClassification(MMRad):
         return total_loss,acc
 
 class PretextProcessor:
-    """Contains methods to mask etc"""
-    def __init__(self, tokenizer, max_seq_len=20, mlm_rate=0.15, mfr_rate=0.15):
+    """Contains preproc and pretext task methods"""
+    def __init__(self, tokenizer, max_seq_len=20, mlm_rate=0.15, mfr_rate=0.15,
+                 itm_rate=0.5):
         self.mlm_rate = mlm_rate
         self.mfr_rate = mfr_rate
+        self.itm_rate = itm_rate
+
         self.tok = tokenizer
         self.max_seq_len = max_seq_len
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    def img_preproc(self, batch, model):
+    def img_vectorize(self, batch, model):
+        '''Creates necessary visual inputs for vbert model'''
         num_features = batch['img']['num_boxes'][0]
 
-        batch['img']['masked_features'] = batch['img'].get('masked_features',batch['img']['features'])
+        # batch['img']['masked_features'] = batch['img'].get('masked_features',batch['img']['features'])
         batch['img']['visual_embeds'] = model.vis_pos_embeds(
                 # If masking, use those, if not, use raw input.
                 img_ft=batch['img'].get('masked_features',batch['img']['features']),
                 img_box=batch['img']['boxes']
                 )
-        batch['img']['att_mask'] = batch['img']['attention_mask']=torch.ones((len(batch['img']['id']), num_features)).to(self.device)
-        batch['img']['type_ids'] = torch.zeros((len(batch), num_features)).to(self.device)
+        batch['img']['att_mask'] = torch.ones((len(batch['img']['id']), num_features), device=self.device)
+        batch['img']['type_ids'] = torch.zeros((len(batch), num_features), device=self.device)
         return batch
 
     def tokenize_pad_vectorize(self, batch):
-        # batch['txt']['tokens'] = [self.tok.convert_tokens_to_ids(['[CLS]']+self.tok.tokenize(s.strip())+['[SEP]'])
-        #                         for s in batch['txt']['raw']]
-        # pad_fct = lambda a,i: a[0:i] if len(a) > i else a + [0]*(i-len(a))
-        
+       
         # transformers > 4.0.0 replace
         encoded = self.tok(
             text=batch['txt']['raw'],
@@ -476,7 +499,6 @@ class PretextProcessor:
         # batch['txt']['input_ids'] = batch['txt']['input_ids'].to(self.device)
         return batch
 
-    
     def mask_img(self, batch):
         """Returns batch with masked visual features and labels"""
         num_features = batch['img']['features'].shape[:2] # (256, 36)
@@ -502,27 +524,39 @@ class PretextProcessor:
     def itm_sampling(self, batch):
         """Get negative samples and set is_matched labels
         for the ITM task"""
-        pass
+        import copy
+        b2 = copy.deepcopy(batch)
+        batch_size = len(batch['img']['id'])
+        
+        inp_mask = torch.rand(batch_size, dtype=torch.float32, device=self.device) < self.itm_rate
+
+        # Generate random idx 
+        rand_idx = torch.randperm(batch_size)[:sum(inp_mask)]
+
+        ## Replace with negative samples
+        batch['img']['features'][inp_mask] = batch['img']['features'][rand_idx]
+        batch['img']['boxes'][inp_mask] = batch['img']['boxes'][rand_idx]
+
+        # expand dim to match the seq_rel linear layer output
+        batch['is_matched'] = torch.unsqueeze(~inp_mask, 1).long()
+        
+        return batch
+
 
 
 
 
 class MMRadDM(pl.LightningDataModule):
     def __init__(self, args):
+        
         super().__init__()
+        
+        # if topk != None:
+        #     args.topk = topk
+        # if train_split != None:
+        #     args.train_split = train_split
 
-        # Add args
-        self.batch_size=args.batch_size
-        # TODO: fix so can have other sizes
-        self.valid_batch_size=args.valid_batch_size 
-        self.shuffle=args.shuffle
-        self.drop_last = args.drop_last
-        self.shuffle=args.shuffle
-        self.topk=args.topk
-        self.val_topk=args.val_topk
-        self.train_split=args.train_split
-        self.valid_split=args.valid_split
-        self.data_path=args.data_path
+        self.save_hyperparameters(args)
 
         self.num_workers = os.cpu_count()
 
@@ -534,18 +568,18 @@ class MMRadDM(pl.LightningDataModule):
         # Called on every GPU
         if stage=='fit' or stage is None:
             
-            if self.train_split=='mscoco_train':
-                self.train_dset = CocoDataset(self.data_path+'captions_train2017.json',
-                        self.data_path+'img_features/mscoco-train_2017-custom.tsv', topk=self.topk)
+            if self.hparams.train_split=='mscoco_train':
+                self.train_dset = CocoDataset(self.hparams.data_path+'captions_train2017.json',
+                        self.hparams.data_path+'img_features/mscoco-train_2017-custom.tsv', topk=self.hparams.topk)
             # Will always val on coco if train on coco
             # if self.valid_split=='mscoco_val':
-                self.valid_dset = CocoDataset(self.data_path+'captions_val2017.json',
-                        self.data_path+'img_features/mscoco-val_2017-custom.tsv', topk=self.val_topk)
+                self.valid_dset = CocoDataset(self.hparams.data_path+'captions_val2017.json',
+                        self.hparams.data_path+'img_features/mscoco-val_2017-custom.tsv', topk=self.hparams.val_topk)
             
-            elif self.train_split=='cub_train':
+            elif self.hparams.train_split=='cub_train':
                 # CUB dset is not split into train/val
-                cubdata = CubDataset(self.data_path+'CUB/caption_label_data.csv',
-                        self.data_path+'CUB/cub_all.tsv', topk=self.topk)
+                cubdata = CubDataset(self.hparams.data_path+'CUB/caption_label_data.csv',
+                        self.hparams.data_path+'CUB/cub_all.tsv', topk=self.hparams.topk)
                 train_set_size = int(len(cubdata)*0.9)
                 valid_set_size = len(cubdata) - train_set_size
                 self.train_dset, self.valid_dset = random_split(cubdata, [train_set_size, valid_set_size])
@@ -561,17 +595,17 @@ class MMRadDM(pl.LightningDataModule):
 
     def train_dataloader(self):
         dl = DataLoader(
-            self.train_dset, batch_size=self.batch_size,
-            shuffle=self.shuffle,
+            self.train_dset, batch_size=self.hparams.batch_size,
+            shuffle=self.hparams.shuffle,
             # collate_fn=lambda x: x,
-            drop_last=self.drop_last, pin_memory=True,
+            drop_last=self.hparams.drop_last, pin_memory=True,
             num_workers=self.num_workers
         )
         return dl
 
     def val_dataloader(self):
         dl = DataLoader(
-            self.valid_dset, batch_size=self.valid_batch_size,
+            self.valid_dset, batch_size=self.hparams.valid_batch_size,
             shuffle=False,
             # collate_fn=lambda x: x,
             drop_last=False, pin_memory=True,
