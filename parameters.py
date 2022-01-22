@@ -41,7 +41,7 @@ def parse_args(stage):
 
     ## Classification only
     parser.add_argument('--img_only', dest='img_only', default=False)
-
+    parser.add_argument('--easy_classification', default=False)
     ##### DATA #####
     # Data splits
     parser.add_argument("--train", dest='train_split', default='mscoco_train')
@@ -49,7 +49,7 @@ def parse_args(stage):
     parser.add_argument("--test", default=None)
     parser.add_argument("--drop_last", dest='drop_last', default=True)
     parser.add_argument("--shuffle", default=True)
-    parser.add_argument("--topk", default=5120, type=int)
+    parser.add_argument("--topk", default=5120)
     parser.add_argument("--val_topk", dest='val_topk', default=None)
     # Sizing
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=256)

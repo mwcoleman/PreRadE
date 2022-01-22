@@ -25,25 +25,27 @@ if __name__=='__main__':
     ####
 
     ### DEBUG args
-    args.train_split = 'mscoco_train'
-    args.valid_split = 'mscoco_val'
-    args.run_name='delme-itm-only-scratch'
-    args.epochs = 3000
-    args.topk = 512
-    args.load_model = None
-    args.num_attention_heads = 12
-    args.num_tx_layers = 6
-    args.tasks = "['itm']"
-    # args.log_offline = True
-    args.val_topk = 256
-    # args.load_model= "uclanlp/visualbert-vqa-coco-pre"
+    if len(sys.argv)<2:
+        args.train_split = 'mimic_train'
+    # args.valid_split = 'mscoco_val' # not used
+        args.run_name='PT-12/12-Full'
+        args.epochs = 30
+        args.topk = None
+        args.load_model = None
+        args.num_attention_heads = 12
+        args.num_tx_layers = 12
+        args.tasks = "['mlm', 'mfr']"
+        # args.log_offline = True
+        # args.val_topk = None  # not used?
+        args.load_model= None #"uclanlp/visualbert-vqa-coco-pre"
 
     # Logging & Callbacks
-    wandb_logger = WandbLogger(name=args.run_name, project='mmRad-coco-sweeps', offline=args.log_offline)
+    wandb_logger = WandbLogger(name=args.run_name, project='mmRad-mimic', offline=args.log_offline)
     wandb_logger.experiment.config.update(args)
     # # Used with sweep agent
     wandb.init(config=wandb_logger.experiment.config)
 
+        # Debug grads
 
     dm = MMRadDM(args)
     dm.setup(stage='fit')

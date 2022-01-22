@@ -1,5 +1,5 @@
 import os, json, random
-import torch
+import torch, torchmetrics
 from torch import nn
 import numpy as np
 from torch.nn import CrossEntropyLoss, MSELoss, GELU, BCELoss
@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 import pytorch_lightning as pl
 import pandas as pd
 from ast import literal_eval
+from sklearn.metrics import roc_auc_score
 
 from transformers import (
     BertTokenizer, 
@@ -94,28 +95,28 @@ class MMRad(pl.LightningModule):
     def forward(self, **inputs):
         return self.model(**inputs)
 
-    def training_step(self, batch, batch_idx):
-        # Preprocess based on the pretext tasks
-        loss, acc = self.shared_step(batch, batch_idx)
-        # result = pl.TrainResult(loss)
+    # def training_step(self, batch, batch_idx):
+    #     # Preprocess based on the pretext tasks
+    #     loss, acc = self.shared_step(batch, batch_idx)
+    #     # result = pl.TrainResult(loss)
 
-        logs = {'train_loss': loss, 'train_acc': acc}
+    #     logs = {'train_loss': loss, 'train_acc': acc}
 
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
-        return loss
+    #     self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
+    #     return loss
     
-    def validation_step(self, batch, batch_idx):
+    # def validation_step(self, batch, batch_idx):
 
-        loss, acc = self.shared_step(batch, batch_idx)
-        # result = pl.EvalResult(checkpoint_on = loss)
+    #     loss, acc = self.shared_step(batch, batch_idx)
+    #     # result = pl.EvalResult(checkpoint_on = loss)
 
-        logs = {'val_loss': loss, 'val_acc': acc}        
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
+    #     logs = {'val_loss': loss, 'val_acc': acc}        
+    #     self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
 
-        return loss
+    #     return loss
 
-    def shared_step(self, batch, batch_idx):
-        pass
+    # def shared_step(self, batch, batch_idx):
+    #     pass
     
     def configure_optimizers(self):
         
@@ -283,8 +284,9 @@ class MMRadForPretraining(MMRad):
 
         # Preprocess based on the pretext tasks
         metrics = self.shared_step(batch, batch_idx, task)
-        logs = {'train_'+task+'_'+k:v for k,v in metrics.items()}#{'train_loss': loss, 'train_acc': acc}
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
+        logs = {'train_'+task+'_'+k:v for k,v in metrics.items()}
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True,
+                      logger = True, batch_size = self.hparams.batch_size)
         return metrics['loss']
     
     def validation_step(self, batch, batch_idx):
@@ -298,10 +300,9 @@ class MMRadForPretraining(MMRad):
             logs = {'val_'+task+'_'+k:v for k,v in metrics.items()}
             all_logs.update(logs)
             
-            # logs = {'val_loss': loss, 'val_acc': acc}        
         logs['val_avg_loss'] = tot_loss/len(self.hparams.tasks)
-        # logs['val_acc'] = tot_acc/len(self.hparams.tasks)
-        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
+        self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True, 
+                      logger = True, batch_size = self.hparams.valid_batch_size)
         return logs['val_avg_loss']
 
     def shared_step(self, batch, batch_idx, task):
@@ -312,38 +313,55 @@ class MMRadForPretraining(MMRad):
     
         # process batch: txt- tokenize/pad, img: project input to Tx dims
         batch = self.pp.tokenize_pad_vectorize(batch)
-           
 
         # Run sampled task, return results as a dict
         return self.task_step[task](batch, batch_idx)
 
-       
- 
-
-       
+   
 
 class MMRadForClassification(MMRad):
     """Adds head for image classification"""
-    def __init__(self, args, train_size, n_classes, n_hidden=512, tokenizer='bert-base-uncased'):
+    def __init__(self, args, train_size, n_classes, labelset=None, n_hidden=512, 
+                 tokenizer='bert-base-uncased'):
         super().__init__(args, train_size, tokenizer=tokenizer)
         
-        # self.dropout = nn.Dropout(self.config.hidden_dropout_prob)
-        # self.cls = nn.Linear(self.config.hidden_size, num_classes)
+        self.labelset = labelset
         
-        self.mlp_block = nn.Sequential(
-                nn.Dropout(self.config.hidden_dropout_prob),
-                nn.Linear(self.config.hidden_size, n_hidden, bias=False),
-                nn.BatchNorm1d(n_hidden),
-                nn.ReLU(inplace=True),
-                nn.Dropout(self.config.hidden_dropout_prob),
-                nn.Linear(n_hidden, n_classes, bias=True),
-            )
-        
+        self.dropout = nn.Dropout(self.config.hidden_dropout_prob)
+        self.cls = nn.Linear(self.config.hidden_size, n_classes)
         
         if self.hparams.img_only:
-            print(f"Setting text inputs to 0")
-    def forward(self, **inputs):
-        return self.model(**inputs)
+            print(f"Setting text inputs to 0 / Masking")
+    
+
+    def training_step(self, batch, batch_idx):
+        metrics = self.shared_step(batch, batch_idx)
+
+        logs = {'train_'+k:v for k,v in metrics.items() if k!='preds'}
+        self.log_dict(logs, on_step = False, on_epoch = True, 
+                      prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
+        
+        return metrics['loss']
+
+        # logs = {'train_loss': loss}
+        # for name,val in zip(self.mimic_labelset, acc):
+        #     logs['train_'+name]=val
+        # for name,val in zip(self.mimic_labelset, pos):
+        #     logs['train_counts_'+name] = val
+        # # logs = {'train_loss': loss, 'train_acc': acc}
+
+        # self.log_dict(logs, on_step = False, on_epoch = True, prog_bar = True, logger = True, batch_size = self.hparams.batch_size)
+        # return loss
+    
+    def validation_step(self, batch, batch_idx):
+
+        metrics = self.shared_step(batch, batch_idx)
+      
+        # Log per-step metrics
+        logs = {'val_'+k:v for k,v in metrics.items() if k!='preds'}
+        self.log_dict(logs, on_step = False, on_epoch = True, 
+                      prog_bar = True, logger = True, batch_size = self.hparams.valid_batch_size)
+        return {'loss': metrics['loss'], 'preds':metrics['preds']}
 
     def shared_step(self, batch, batch_idx):
         # a batch should be a dict containing:
@@ -396,17 +414,100 @@ class MMRadForClassification(MMRad):
         # sequence_output.shape = (batch_size, max_seq_len, hidden_dim)
         # pooled_output.shape = (batch_size, 768)
         sequence_output, pooled_output = outputs[:2]
-        logits = self.mlp_block(pooled_output)
-        preds = logits.argmax(1)
+        
+        # #### MIMIC class
+          
+        logits = self.cls(self.dropout(pooled_output))
+        preds = nn.Sigmoid()(logits) 
+        
+        loss_fct = nn.BCEWithLogitsLoss()
+        if self.hparams.easy_classification:
+            logits = logits.view(-1)
+            loss = loss_fct(logits, labels)
+            acc = ((preds.view(-1) > 0.5) == labels).type(torch.float).mean()*100
+            metrics = {'loss':loss, 'acc':acc}
+            
+        else:
+            loss = loss_fct(logits, labels)
+            acc = (preds == labels).type(torch.float).mean(dim=0)
+            # positives = torch.sum(labels, dim=0)
+            metrics = {'loss':loss}
+            metrics['preds']=preds
 
-        total_loss = None
-        acc = None
 
-        loss_fct = CrossEntropyLoss()
-        total_loss = loss_fct(logits, labels)
-        acc = (preds == labels).type(torch.float).mean()*100
-    
-        return total_loss,acc
+        return metrics
+        ## Old: CUB 
+        # cls_scores = self.cls(pooled_output)
+        # preds = cls_scores.argmax(1)
+
+        # total_loss = None
+        # acc = None
+
+        # loss_fct = CrossEntropyLoss()
+        # total_loss = loss_fct(cls_scores, labels)
+        # acc = (preds == labels).type(torch.float).mean()*100
+
+class LogValMetrics(pl.Callback):
+    """Log whole-val auroc & TP,FP,TN,FP stats using accumulated preds & labels
+       Will probably break on distributed GPU training.."""
+    def __init__(self):
+        super().__init__()
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        self.auroc = torchmetrics.AUROC(num_classes=14,
+                                        average=None)
+        self.statscores = torchmetrics.StatScores(reduce='macro',
+                                                  num_classes=14,
+                                                    )
+        self.auroc.to(self.device)
+        self.statscores.to(self.device)
+
+        self.result_auc = torch.zeros((14,), device=self.device)
+
+    def on_validation_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs, batch, batch_idx,_) -> None:
+        
+        # Accumulate preds/labels across batches
+        if batch_idx==0:
+            self.val_preds = outputs['preds']
+            self.val_labels = batch['label']
+        else:
+            self.val_preds = torch.vstack((self.val_preds,outputs['preds']))
+            self.val_labels = torch.vstack((self.val_labels, batch['label'])) 
+
+    def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        # Skip labels that don't have both instances (0,1)
+        mask = torch.sum(self.val_labels, dim=0) > 0
+
+        # Compute & update AUC for the others; carry over old vals (0) 
+        self.result_auc[mask] = self.auroc(self.val_preds[:,mask], self.val_labels[:,mask].type(torch.int)).to(self.device)
+
+        # Compute stat scores (TP,...) over epoch
+        # StatScores returns tensor of shape (num_classes, 5)
+        # When macro is used. last dim is [TP,FP,TN,FN,TP+FN]
+        statscores = self.statscores(self.val_preds, self.val_labels.type(torch.int)).type(torch.float)
+        
+        for name,score,stats in zip(pl_module.labelset, self.result_auc, torch.tensor_split(statscores,14,dim=0)):
+            stats = stats.squeeze(0)
+
+            results = {'AUC_'+name:score,
+                       'SS_'+name+'_TP':stats[0],
+                       'SS_'+name+'_FP':stats[1],
+                       'SS_'+name+'_TN':stats[2],
+                       'SS_'+name+'_FN':stats[3],
+                       'SS_'+name+'_SUP':stats[4]}
+
+
+            self.log_dict(results)
+
+        # for name,stats in zip(pl_module.labelset, torch.tensor_split(statscores,14,dim=0)):
+        #     stats = stats.squeeze(0)
+        #     stats = {'SS_'+name+'_TP':stats[0],
+        #              }
+        #     self.log('SS_'+name,{'TP':stats[0],'FP':stats[1],
+        #                          'TN':stats[2],'FN':stats[3],
+        #                          'SUP':stats[4]})            
+
+
 
 class PretextProcessor:
     """Contains preproc and pretext task methods"""
@@ -544,17 +645,10 @@ class PretextProcessor:
 
 
 
-
-
 class MMRadDM(pl.LightningDataModule):
     def __init__(self, args):
         
         super().__init__()
-        
-        # if topk != None:
-        #     args.topk = topk
-        # if train_split != None:
-        #     args.train_split = train_split
 
         self.save_hyperparameters(args)
 
@@ -571,8 +665,6 @@ class MMRadDM(pl.LightningDataModule):
             if self.hparams.train_split=='mscoco_train':
                 self.train_dset = CocoDataset(self.hparams.data_path+'captions_train2017.json',
                         self.hparams.data_path+'img_features/mscoco-train_2017-custom.tsv', topk=self.hparams.topk)
-            # Will always val on coco if train on coco
-            # if self.valid_split=='mscoco_val':
                 self.valid_dset = CocoDataset(self.hparams.data_path+'captions_val2017.json',
                         self.hparams.data_path+'img_features/mscoco-val_2017-custom.tsv', topk=self.hparams.val_topk)
             
@@ -585,6 +677,24 @@ class MMRadDM(pl.LightningDataModule):
                 self.train_dset, self.valid_dset = random_split(cubdata, [train_set_size, valid_set_size])
                 # Store number of classes
                 self.num_classes = cubdata.get_num_classes()
+
+            elif self.hparams.train_split=='mimic_train':
+                # MIMIC set not split into train/val
+                #txt_path, img_path, labels_path, use_captions='findings', topk=5120
+                mimic_root = os.path.join(self.hparams.data_path, 'MIMIC')
+                txt_path = os.path.join(mimic_root, 'id_to_findings.csv')
+                img_path = os.path.join(mimic_root, 'mimic_img_with_findings.tsv')
+                label_path = os.path.join(mimic_root, 'labels', 'mimic-cxr-2.0.0-chexpert.csv.gz')
+                
+                mimic_data = MimicDataset(txt_path, img_path, label_path,
+                                          use_captions='findings', topk=self.hparams.topk,
+                                          binary_task=self.hparams.easy_classification)
+                train_set_size = int(len(mimic_data)*0.2)
+                valid_set_size = len(mimic_data) - train_set_size
+                self.train_dset, self.valid_dset = random_split(mimic_data, [train_set_size, valid_set_size])
+                self.num_classes = 1 if self.hparams.easy_classification else 14
+                self.labelset = mimic_data.labelset
+                
         self.train_size,self.valid_size = len(self.train_dset), len(self.valid_dset)
         print(f"Size of train / val splits: {self.train_size} / {self.valid_size}")
 
@@ -597,7 +707,7 @@ class MMRadDM(pl.LightningDataModule):
         dl = DataLoader(
             self.train_dset, batch_size=self.hparams.batch_size,
             shuffle=self.hparams.shuffle,
-            # collate_fn=lambda x: x,
+            collate_fn=debug_collate, #lambda x: x,
             drop_last=self.hparams.drop_last, pin_memory=True,
             num_workers=self.num_workers
         )
@@ -607,11 +717,13 @@ class MMRadDM(pl.LightningDataModule):
         dl = DataLoader(
             self.valid_dset, batch_size=self.hparams.valid_batch_size,
             shuffle=False,
-            # collate_fn=lambda x: x,
+            collate_fn=debug_collate, #lambda x: x,
             drop_last=False, pin_memory=True,
             num_workers=self.num_workers
         )
         return dl    
+
+
 
 class CubDataset(Dataset):
     """CUB images + captions (1 each) for fine tuning
@@ -625,6 +737,7 @@ class CubDataset(Dataset):
                           'caption':item['captions'],
                           'label':item['class']} 
                           for _,item in self.txt_df.iterrows()]
+    
         if topk != None:
             # Filter img_ids to match loaded topk
             self.txt_data = self.txt_data[:topk]
@@ -656,6 +769,72 @@ class CubDataset(Dataset):
                           'img_w' : img_data['img_w']
                           },
                   'label': label
+                 }
+        return sample
+
+class MimicDataset(Dataset):
+    """Mimic-cxr dataset with extracted visual features,
+    captions (from impressions), ID, view, ..."""
+    def __init__(self, txt_path, img_path, labels_path, 
+                 use_captions='findings', topk=5120,
+                 binary_task=False):
+        super().__init__()
+        self.binary_task = binary_task
+        self.use_captions = use_captions
+        
+        self.img_data = load_tsv(img_path, topk=topk)
+        self.txt_df = pd.read_csv(txt_path)
+        self.labelset = ['Atelectasis', 'Cardiomegaly', 'Consolidation',
+                         'Edema', 'Enlarged Cardiomedastinum', 'Fracture',
+                         'Lung Lesion', 'Lung Opacity', 'No Finding',
+                         'Pleural Effusion', 'Pleural Other', 'Pneumonia',
+                         'Pneumothorax', 'Support Devices']
+
+        # Get label data, default chexpert
+        self.label_data = pd.read_csv(labels_path)
+        label_cats = self.label_data.columns[2:]
+        
+
+        # Filter img_ids to match loaded topk
+        # This also filters on the PT or FT split of img features
+        self.txt_df = self.txt_df[self.txt_df['dicom_id'].isin(self.img_data.keys())]
+
+        # add labels - filter/sort on reports
+        self.txt_df = self.txt_df.merge(self.label_data, on='study_id', how='left')
+        self.labels_data = np.nan_to_num(np.asarray(self.txt_df[label_cats]))
+        self.labels_data[self.labels_data < 0] = 0
+        if self.binary_task:
+            # 'No finding' label only
+            self.labels_data = self.labels_data[:,8]
+        self.txt_data = self.txt_df
+        
+    def __len__(self):
+        return len(self.img_data)        
+    
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        
+        # Produces a sample per txt sequence- image features are duplicated for each.        
+        selected = self.txt_data.iloc[idx]
+        img_data = self.img_data[selected['dicom_id']]
+        
+        caption = selected['findings'] if self.use_captions == 'findings' else selected['impression']
+        
+        # label = self.label_data[self.label_data['study_id']==selected['study_id']]['labels'].values
+        
+        # TODO: if adding view to the input data,  preprocess to remove NaNs,
+        #       else collate_fn bugs out         
+        sample = {'txt': {'raw' : caption}, #'view': selected['view']},   Need to convert NaN to str to use this, or collate_fn bugs out.
+                          
+                  'img': {'id' : selected['dicom_id'], 
+                          'features' : img_data['features'], 
+                          'boxes' : img_data['boxes'],
+                          'num_boxes' : img_data['num_boxes'], 
+                          'img_h' : img_data['img_h'],
+                          'img_w' : img_data['img_w']
+                          },
+                  'label': self.labels_data[idx]
                  }
         return sample
 
@@ -702,6 +881,56 @@ class CocoDataset(Dataset):
 
 ### Callbacks
 
+class DisplayGrads(pl.Callback):
+    """Display sample of preds/labels every n epochs"""
+    def __init__(self):
+        super().__init__()
+    def on_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        grad_sum = 0
+        grad_dict = {k:v.grad for k,v in pl_module.named_parameters()}
+        no_grad_layers = []
+        for k,v in grad_dict.items():
+            try:
+                grad_sum += torch.sum(v)
+            except:
+                no_grad_layers.append(str(k))
+        print(grad_sum)
+        print(no_grad_layers)
+
+# import wandb
+
+# class WandbImageCallback(pl.Callback):
+#     """Logs the input and output images of a module.
+    
+#     Images are stacked into a mosaic, with output on the top
+#     and input on the bottom."""
+    
+#     def __init__(self, val_samples, max_samples=32):
+#         super().__init__()
+#         self.val_imgs, _ = val_samples
+#         self.val_imgs = self.val_imgs[:max_samples]
+          
+#     def on_validation_end(self, trainer, pl_module):
+#         val_imgs = self.val_imgs.to(device=pl_module.device)
+    
+#         outs = pl_module(val_imgs)
+    
+#         mosaics = torch.cat([outs, val_imgs], dim=-2)
+#         caption = "Top: Output, Bottom: Input"
+#         trainer.logger.experiment.log({
+#             "val/examples": [wandb.Image(mosaic, caption=caption) 
+#                               for mosaic in mosaics],
+#             "global_step": trainer.global_step
+#             })
+            
+# ...
+
+# trainer = pl.Trainer(
+#     ...
+#     callbacks=[WandbImageCallback(val_samples)]
+# )
+
+
 
 
 # class WandbImagePredCallback(pl.Callback):
@@ -728,4 +957,64 @@ class CocoDataset(Dataset):
 #                 ],
 #             "global_step": trainer.global_step
 #             })        
+import torch
+import re
+import collections
+from torch._six import string_classes
+
+np_str_obj_array_pattern = re.compile(r'[SaUO]')
+default_collate_err_msg_format = (
+    "default_collate: batch must contain tensors, numpy arrays, numbers, "
+    "dicts or lists; found {}")
+
+def debug_collate(batch):
+    r"""Puts each data field into a tensor with outer dimension batch size"""
+
+    elem = batch[0]
+    elem_type = type(elem)
+    if isinstance(elem, torch.Tensor):
+        out = None
+        if torch.utils.data.get_worker_info() is not None:
+            # If we're in a background process, concatenate directly into a
+            # shared memory tensor to avoid an extra copy
+            numel = sum([x.numel() for x in batch])
+            storage = elem.storage()._new_shared(numel)
+            out = elem.new(storage)
+        return torch.stack(batch, 0, out=out)
+    elif elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_' \
+            and elem_type.__name__ != 'string_':
+        if elem_type.__name__ == 'ndarray' or elem_type.__name__ == 'memmap':
+            # array of string classes and object
+            if np_str_obj_array_pattern.search(elem.dtype.str) is not None:
+                raise TypeError(default_collate_err_msg_format.format(elem.dtype))
+
+            return debug_collate([torch.as_tensor(b) for b in batch])
+        elif elem.shape == ():  # scalars
+            return torch.as_tensor(batch)
+    elif isinstance(elem, float):
+        try:
+            return torch.tensor(batch, dtype=torch.float64)
+        except Exception as e:
+            print("error")
+            print(e)
+            return torch.tensor(batch, dtype=torch.float64)
+    elif isinstance(elem, int):
+        return torch.tensor(batch)
+    elif isinstance(elem, string_classes):
+        return batch
     
+    elif isinstance(elem, collections.abc.Mapping):
+        return {key: debug_collate([d[key] for d in batch]) for key in elem}
+
+    elif isinstance(elem, tuple) and hasattr(elem, '_fields'):  # namedtuple
+        return elem_type(*(debug_collate(samples) for samples in zip(*batch)))
+    elif isinstance(elem, collections.abc.Sequence):
+        # check to make sure that the elements in batch have consistent size
+        it = iter(batch)
+        elem_size = len(next(it))
+        if not all(len(elem) == elem_size for elem in it):
+            raise RuntimeError('each element in list of batch should be of equal size')
+        transposed = zip(*batch)
+        return [debug_collate(samples) for samples in transposed]
+
+    raise TypeError(default_collate_err_msg_format.format(elem_type))

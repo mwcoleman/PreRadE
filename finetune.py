@@ -24,31 +24,38 @@ if __name__=='__main__':
 
     ####
     ### DEBUG args
-    args.train_split = 'cub_train'
-    args.valid_split = 'cub_valid'
-    args.run_name='FT-30-scratch_mlm-frozen-1e-3_0.9-split'
-    args.epochs = 30
-    args.topk = 512 #10240
-    args.load_model = None # '/media/matt/data21/mmRad/checkpoints/PT/PT-scratch-mlm/backbone/' #"uclanlp/visualbert-vqa-coco-pre" #"/media/matt/data21/mmRad/checkpoints/PT/CUB-Full-MLM/backbone/"
-    args.freeze=True # Freeze the backbone (init from scratch)
-    args.img_only = False
-    args.lr = 1e-3 #5e-5
-    args.lr_scheduler = False
-    # args.val_topk = 5120
-    args.img_only = True
+    import sys
+    if len(sys.argv)<2:
+        args.train_split = 'mimic_train'
+        # args.valid_split = 'cub_valid'
+        args.run_name='delme'
+        args.epochs = 100
+        args.topk = 5120 #10240
+        args.load_model = "/media/matt/data21/mmRad/checkpoints/PT/delme-mimic-mlm-mfr/backbone/"# '/media/matt/data21/mmRad/checkpoints/PT/PT-scratch-mlm/backbone/' #"uclanlp/visualbert-vqa-coco-pre" # '/media/matt/data21/mmRad/checkpoints/PT/PT-scratch-mlm/backbone/' #"uclanlp/visualbert-vqa-coco-pre" #"/media/matt/data21/mmRad/checkpoints/PT/CUB-Full-MLM/backbone/"
+        args.freeze=False # Freeze the backbone (init from scratch)
+        args.img_only = False
+        args.lr = 5e-5# .001 #2e-5 #1e-3 #5e-5
+        # args.lr_scheduler = False
+        args.val_topk = None
+        args.batch_size=256
+        # args.img_only = True
+        # args.easy_classification = True
+        # args.log_offline = True
+
     
     dm = MMRadDM(args)
     dm.setup(stage='fit')
     
     if args.load_cp_path is None:
-        model = MMRadForClassification(args=args, train_size=dm.train_size, n_classes=dm.num_classes)
+        model = MMRadForClassification(args=args, train_size=dm.train_size, n_classes=dm.num_classes, labelset=dm.labelset)
     else:
         # Load a pretrained model for (further) training
         print(f'Loading saved model from {args.load_cp_path}')
+        # TODO: Get rid of redundant arguments passed in..
         model = MMRadForClassification(args=args, train_size=dm.train_size).load_from_checkpoint(args.load_cp_path, args=args, train_size=dm.train_size)
     
     # Logging & Callbacks
-    wandb_logger = WandbLogger(name=args.run_name, project='mmRad-CUB')
+    wandb_logger = WandbLogger(name=args.run_name, project='mmRad-CUB', offline= args.log_offline)
     wandb_logger.watch(model)
     wandb_logger.experiment.config.update(args)
 
@@ -58,18 +65,13 @@ if __name__=='__main__':
         every_n_epochs=4
     )
     lr_monitor = LearningRateMonitor(logging_interval='step')
-   
-    from data_monitor import TrainingDataMonitor
-
-    # log the histograms of input data sent to LightningModule.training_step
-    # data_monitor = TrainingDataMonitor(log_every_n_steps=25)
-
-
+    from modules import LogValMetrics
+    auroc_metrics = LogValMetrics()
 
     # Reproducibility
     pl.seed_everything(808, workers=True)
-    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback, lr_monitor], 
-                         log_every_n_steps=10, max_epochs=args.epochs, deterministic=False, 
+    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback, lr_monitor, auroc_metrics], 
+                         log_every_n_steps=10, max_epochs=args.epochs, deterministic=True, 
                          logger=wandb_logger, track_grad_norm=-1, fast_dev_run=False)
     
     print(f"\nBeginning training run with {args.topk} training examples from {args.train_split}. Training for {args.epochs} epochs...\n")
