@@ -26,17 +26,20 @@ class RawMimicDataset(Dataset):
     id_to_split: (str) path to csv with dicom_id and split (PT/FT) as from 
                  stratified_split.ipynb
     view: (str) xray view to filter on
-    split: (str) extract features for [PT/FT]
+    
+
+    csv_path: path to csv e.g. 'studies_with_split.csv' created by stratified_split notebook; a csv containing
+        dicom_id split subject_id study_id path report ViewPosition report_len 
+        AND all labels after processing (-> int, 'no findings' removed etc.)
+    split: (str) extract features for [TRAIN/VAL/TEST]  (default 0.9/.05/.05)
     """
-    def __init__(self, id_to_findings, image_root, id_to_split, view='AP', split='FT'):
+    def __init__(self, csv_path, image_root, split='FT'):
         # Only extracting for those with findings
-        data = pd.read_csv(id_to_findings)
-        splits = pd.read_csv(id_to_split)
+        data = pd.read_csv(csv_path)
+        # splits = pd.read_csv(id_to_split)
 
         self.img_root_dir = image_root
-        data = data[data['ViewPosition']==view]
-        data = data.merge(splits, on='dicom_id', how='left')
-        
+
         self.valid_data = data[data['split']==split]
         self.valid_data.reset_index(inplace=True)
 
@@ -47,9 +50,7 @@ class RawMimicDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        # img_id = self.valid_data['dicom_id'][idx]
-        
-        image_fp = os.path.join(self.img_root_dir, self.valid_data['filepath'][idx])
+        image_fp = os.path.join(self.img_root_dir, self.valid_data['path'][idx])
         try:
             image = plt.imread(image_fp)
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
@@ -58,11 +59,7 @@ class RawMimicDataset(Dataset):
             image = None
         
         sample = {'img_id': self.valid_data['dicom_id'][idx], 
-                #   'subject_id':self.data['subject_id'][idx], 
-                #   'study_id':self.data['study_id'][idx],
-                #   'view':self.data['ViewPosition'][idx],
                   'caption':"",
-                #   'caption':self.get_report(self.data['filepath'][idx][84:107]+'.txt'),
                   'image':image}
         return sample
 
@@ -152,8 +149,7 @@ CUB_IMG_PATH = ROOT+'CUB/images/'
 
 
 MIMIC_IMAGE_ROOT = os.path.join(ROOT, 'mimic-cxr', 'data', 'images')
-MIMIC_ID_TO_FINDINGS = os.path.join(ROOT, 'mimic-cxr', 'data', 'id_to_findings.csv')
-MIMIC_ID_TO_SPLIT = os.path.join(ROOT, 'mimic-cxr', 'data', 'id_to_split.csv')
+
 
 
 CFG_PATH =  "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"
@@ -169,10 +165,16 @@ if __name__=='__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('--dataset', default='mimic')
-    parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/mimic_FT_AP-view.tsv')
+    parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/mimic_train_100k.tsv')
     parser.add_argument('--visualise', dest='visualise_examples', default=False)
+    parser.add_argument('--mimic_split', default='TRAIN')
+    parser.add_argument('--mimic_csv', default='studies_with_splits.csv')
+
 
     args = parser.parse_args()
+
+    MIMIC_CSV = os.path.join(ROOT, 'mimic-cxr', 'data', args.mimic_csv)
+
     print(f"Building tsv dataset for {args.dataset} dataset. File locations given:")
     if args.dataset=='coco':
         print(f"Annotations: {COCO_ANNOT_PATH}")
@@ -188,9 +190,9 @@ if __name__=='__main__':
         print("done")
 
     elif args.dataset=='mimic':
-        print(f"Mimic path: {MIMIC_ID_TO_FINDINGS}")
+        print(f"Mimic path: {MIMIC_CSV}")
         # Only extracting for those with findings & AP View.
-        dataset = RawMimicDataset(MIMIC_ID_TO_FINDINGS, MIMIC_IMAGE_ROOT, MIMIC_ID_TO_SPLIT)
+        dataset = RawMimicDataset(MIMIC_CSV, MIMIC_IMAGE_ROOT, split=args.mimic_split)
         print("done")
 
     d2_rcnn = Extractor(CFG_PATH, batch_size=BATCH_SIZE)

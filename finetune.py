@@ -28,20 +28,20 @@ if __name__=='__main__':
     if len(sys.argv)<2:
         args.train_split = 'mimic_train'
         # args.valid_split = 'cub_valid'
-        args.run_name='delme'
-        args.epochs = 100
-        args.topk = 5120 #10240
-        args.load_model = "/media/matt/data21/mmRad/checkpoints/PT/delme-mimic-mlm-mfr/backbone/"# '/media/matt/data21/mmRad/checkpoints/PT/PT-scratch-mlm/backbone/' #"uclanlp/visualbert-vqa-coco-pre" # '/media/matt/data21/mmRad/checkpoints/PT/PT-scratch-mlm/backbone/' #"uclanlp/visualbert-vqa-coco-pre" #"/media/matt/data21/mmRad/checkpoints/PT/CUB-Full-MLM/backbone/"
+        args.run_name='FT-Mimic-MLM-ITM-30e-All-AP'
+        args.epochs = 30
+        args.topk = 0 #10240
+        args.load_model = "/media/matt/data21/mmRad/checkpoints/PT/PT-mlmitm-12hr-benchmark-continued/backbone-epoch79/" # "uclanlp/visualbert-vqa-coco-pre" 
         args.freeze=False # Freeze the backbone (init from scratch)
         args.img_only = False
-        args.lr = 5e-5# .001 #2e-5 #1e-3 #5e-5
+        args.lr = 5e-5
         # args.lr_scheduler = False
         args.val_topk = None
-        args.batch_size=256
+        args.batch_size=128
         # args.img_only = True
+        # args.txt_only = True
         # args.easy_classification = True
         # args.log_offline = True
-
     
     dm = MMRadDM(args)
     dm.setup(stage='fit')
@@ -52,17 +52,18 @@ if __name__=='__main__':
         # Load a pretrained model for (further) training
         print(f'Loading saved model from {args.load_cp_path}')
         # TODO: Get rid of redundant arguments passed in..
-        model = MMRadForClassification(args=args, train_size=dm.train_size).load_from_checkpoint(args.load_cp_path, args=args, train_size=dm.train_size)
+        model = MMRadForClassification(args=args, train_size=dm.train_size, n_classes=dm.num_classes, labelset=dm.labelset).load_from_checkpoint(args.load_cp_path, args=args, train_size=dm.train_size, n_classes=dm.num_classes, labelset=dm.labelset)
     
     # Logging & Callbacks
-    wandb_logger = WandbLogger(name=args.run_name, project='mmRad-CUB', offline= args.log_offline)
+    wandb_logger = WandbLogger(name=args.run_name, project='mmRad-mimic', offline= args.log_offline)
     wandb_logger.watch(model)
     wandb_logger.experiment.config.update(args)
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath=args.save_cp_path + args.run_name + '/pl_framework/',
-        every_n_epochs=4
+        every_n_epochs=10,
+        save_top_k=-1
     )
     lr_monitor = LearningRateMonitor(logging_interval='step')
     from modules import LogValMetrics
@@ -70,6 +71,7 @@ if __name__=='__main__':
 
     # Reproducibility
     pl.seed_everything(808, workers=True)
+
     trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback, lr_monitor, auroc_metrics], 
                          log_every_n_steps=10, max_epochs=args.epochs, deterministic=True, 
                          logger=wandb_logger, track_grad_norm=-1, fast_dev_run=False)
