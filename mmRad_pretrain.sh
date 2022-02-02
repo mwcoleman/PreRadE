@@ -3,7 +3,7 @@
 # The name of experiment
 name=PT-mlmitm-12hr-benchmark
 encoder=None #uclanlp/visualbert-vqa-coco-pre
-dataset=mimic_train
+dataset=mimic
 tasks=\[\'mlm\'\,\'itm\'\]
 epochs=180
 load_cp=/media/matt/data21/mmRad/checkpoints/PT/PT-mlmitm-12hr-benchmark/pl_framework/epoch=23-step=9191.ckpt

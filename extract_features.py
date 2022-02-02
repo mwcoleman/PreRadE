@@ -165,9 +165,9 @@ if __name__=='__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('--dataset', default='mimic')
-    parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/mimic_train_100k.tsv')
+    parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/mimic_test_100k.tsv')
     parser.add_argument('--visualise', dest='visualise_examples', default=False)
-    parser.add_argument('--mimic_split', default='TRAIN')
+    parser.add_argument('--mimic_split', default='TEST')
     parser.add_argument('--mimic_csv', default='studies_with_splits.csv')
 
 
