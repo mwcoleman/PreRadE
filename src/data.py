@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 import pytorch_lightning as pl
 import pandas as pd
 
-from utils import load_tsv
+from src.utils import load_tsv
 
 
 class MMRadDM(pl.LightningDataModule):
@@ -19,6 +19,7 @@ class MMRadDM(pl.LightningDataModule):
         self.num_workers = os.cpu_count()
         self.g = torch.Generator()
         self.g.manual_seed(808)
+
     def prepare_data(self):
         # Called on 1 GPU only
         pass
@@ -38,12 +39,12 @@ class MMRadDM(pl.LightningDataModule):
             elif self.hparams.dataset=='mimic':
                 # MIMIC set not split into train/val
                 #txt_path, img_path, labels_path, use_captions='findings', topk=5120
-                mimic_root = self.hparams.data_path
-                txt_path = os.path.join(mimic_root, self.hparams.txt_path)
-                img_path = os.path.join(mimic_root, self.hparams.img_path)
-                label_path = os.path.join(mimic_root, 'labels', 'mimic-cxr-2.0.0-chexpert.csv.gz')
+                self.mimic_root = self.hparams.data_path
+                self.txt_path = os.path.join(self.mimic_root, self.hparams.txt_path)
+                self.img_path = os.path.join(self.mimic_root, self.hparams.img_path)
+                self.label_path = os.path.join(self.mimic_root, 'labels', 'mimic-cxr-2.0.0-chexpert.csv.gz')
                 
-                mimic_data = MimicDataset(txt_path, img_path, label_path,
+                mimic_data = MimicDataset(self.txt_path, self.img_path,
                                           topk=self.hparams.topk,
                                           binary_task=self.hparams.easy_classification)
                 if self.hparams.valid_data is None:
@@ -53,13 +54,16 @@ class MMRadDM(pl.LightningDataModule):
                     self.train_dset, self.valid_dset = random_split(mimic_data, [train_set_size, valid_set_size],
                                                                     generator=self.g)
                 else:
+                    valid_path = os.path.join(self.mimic_root,self.hparams.valid_data)
                     self.train_dset = mimic_data
-                    self.valid_dset = MimicDataset(txt_path, self.hparams.valid_data,
+                    self.valid_dset = MimicDataset(self.txt_path, valid_path,
                                           topk=self.hparams.val_topk,
                                           binary_task=self.hparams.easy_classification)
                     
                 self.num_classes = 1 if self.hparams.easy_classification else 13
                 self.labelset = mimic_data.labelset
+                self.train_size,self.valid_size = len(self.train_dset), len(self.valid_dset)
+                print(f"Size of train / val / test splits: {self.train_size} / {self.valid_size} / {self.test_size}")
             
         if stage=='test' or stage is None:
              
@@ -67,13 +71,13 @@ class MMRadDM(pl.LightningDataModule):
                 pass
             else:
                 if self.hparams.dataset=='mimic':
-                    self.test_dset = MimicDataset(txt_path, self.hparams.test_data,
+                    test_path = os.path.join(self.mimic_root,self.hparams.test_data)
+                    print(f"Loading test data from {test_path}")
+                    self.test_dset = MimicDataset(self.txt_path, test_path,
                                           binary_task=self.hparams.easy_classification)
                     self.test_size = len(self.test_dset)
-        self.train_size,self.valid_size = len(self.train_dset), len(self.valid_dset)
-
-        print(f"Size of train / val / test splits: {self.train_size} / {self.valid_size} / {self.test_size}")
-        # self.dims = len(self.train_dset)//self.batch_size
+                    
+                    print(f"Finished loading.. Size of test set: {self.test_size}")
 
     def seed_worker(self,worker_id):
         worker_seed = torch.initial_seed() % 2**32
@@ -121,7 +125,7 @@ class MMRadDM(pl.LightningDataModule):
 class MimicDataset(Dataset):
     """Mimic-cxr dataset with extracted visual features,
     captions (from impressions), ID, view, ..."""
-    def __init__(self, txt_path, img_path, labels_path, 
+    def __init__(self, txt_path, img_path, 
                  topk=0, binary_task=False):
         super().__init__()
         self.binary_task = binary_task
