@@ -36,11 +36,13 @@ class MMRad(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters(args)
 
-        self.config = VisualBertConfig(visual_embedding_dim=self.hparams.visual_embedding_dim,
-                                       num_attention_heads=self.hparams.num_attention_heads,
-                                       dropout=self.hparams.dropout,
-                                       hidden_size=self.hparams.encoder_hidden_size,
-                                       num_hidden_layers=self.hparams.num_tx_layers)
+        self.config = VisualBertConfig(
+            visual_embedding_dim=self.hparams.visual_embedding_dim,
+            num_attention_heads=self.hparams.num_attention_heads,
+            dropout=self.hparams.dropout,
+            hidden_size=self.hparams.encoder_hidden_size,
+            num_hidden_layers=self.hparams.num_tx_layers
+            )
         # Extracted features
         self.visual_features_dim = self.hparams.extracted_ft_dim
 
@@ -442,6 +444,16 @@ class MMRadForClassification(MMRad):
         self.log_dict(logs, on_step = False, on_epoch = True, 
                       prog_bar = True, logger = True, batch_size = self.hparams.valid_batch_size)
         return {'loss': metrics['loss'], 'preds':metrics['preds']}
+
+    def test_step(self, batch, batch_idx):
+
+        metrics = self.shared_step(batch, batch_idx)
+      
+        # Log per-step metrics
+        logs = {'test_'+k:v for k,v in metrics.items() if k!='preds'}
+        self.log_dict(logs, on_step = False, on_epoch = True, 
+                      prog_bar = True, logger = True, batch_size = self.hparams.valid_batch_size)
+        return {'loss': metrics['loss'], 'preds':metrics['preds']}        
 
     def shared_step(self, batch, batch_idx):
         # a batch should be a dict containing:
