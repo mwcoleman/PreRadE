@@ -7,7 +7,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, St
 from src.model import MMRadForClassification
 from src.data import MMRadDM
 from src.parameters import parse_args
-from src.utils import LogValMetrics
+from src.utils import MetricsCallback
 
 ##
 # TODO: This can be removed once pytorch-lightning issue #10408 is merged
@@ -35,9 +35,9 @@ if __name__=='__main__':
     if len(sys.argv)<2:
         args.dataset = 'mimic'
         args.run_name='mlm_mfr_itm-30-Val_6k-del'
-        args.epochs = 30
+        args.epochs = 1
         args.topk = 512 #10240
-        args.load_model = "/media/matt/data21/mmRad/checkpoints/PT/12L-SWA-mlm_mfr_itm/encoder/epoch=54-step=91519.ckpt"  #"uclanlp/visualbert-vqa-coco-pre" # 
+        args.load_model = "/media/matt/data21/mmRad/checkpoints/PT/12L-SWA-mlm_mfr_itm/backbone/epoch=54-step=91519.ckpt"  #"uclanlp/visualbert-vqa-coco-pre" # 
         args.freeze=False # Freeze the encoder (init from scratch)
         args.img_only = False
         args.img_path = 'mimic_val_100k.tsv'
@@ -53,6 +53,7 @@ if __name__=='__main__':
         # args.txt_only = True
         # args.easy_classification = True
         args.log_offline = True
+        args.test_data = 'mimic_test_100k.tsv'
     
     dm = MMRadDM(args)
     dm.setup(stage='fit')
@@ -100,10 +101,10 @@ if __name__=='__main__':
         save_top_k=-1
     )
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    auroc_metrics = LogValMetrics(dm.num_classes)
+    auroc_metrics = MetricsCallback(dm.num_classes)
     swa = StochasticWeightAveraging()
 
-    callbacks = [checkpoint_callback, 
+    callbacks = [#checkpoint_callback, 
                  lr_monitor, 
                  auroc_metrics, 
                  swa]
@@ -128,24 +129,39 @@ if __name__=='__main__':
 
     trainer.fit(model, dm)
 
-    # Save model states
-    print(f"PL Model and state saved to {checkpoint_callback.best_model_path}")
-    wandb_logger.experiment.config['pl_framework_path'] = checkpoint_callback.best_model_path
-    
+    # Eval
+    if args.test_data is not None:
+        trainer.test(model, test_dataloaders=dm)
+
+    # Save CP & encoder
+    trainer.save_checkpoint(cp_path)
+    print(f"Checkpoint saved to {cp_path}")
+    wandb_logger.experiment.config['cp_path'] = cp_path
     if args.save_encoder:
-
-        model = MMRadForClassification(
-            args=args,
-            train_size=dm.train_size, 
-            n_classes=dm.num_classes
-            ).load_from_checkpoint(
-                checkpoint_callback.best_model_path,
-                args=args,
-                train_size=dm.train_size, 
-                n_classes=dm.num_classes
-                )
-
         model.model.save_pretrained(save_directory=encoder_path)
-
-        print(f"Tx encoder saved to {encoder_path}")
+        print(f"Encoder weights saved to {encoder_path}")
         wandb_logger.experiment.config['encoder_path'] = encoder_path
+
+
+
+    # # Save model states
+    # print(f"PL Model and state saved to {checkpoint_callback.best_model_path}")
+    # wandb_logger.experiment.config['pl_framework_path'] = checkpoint_callback.best_model_path
+    
+    # if args.save_encoder:
+
+    #     model = MMRadForClassification(
+    #         args=args,
+    #         train_size=dm.train_size, 
+    #         n_classes=dm.num_classes
+    #         ).load_from_checkpoint(
+    #             checkpoint_callback.best_model_path,
+    #             args=args,
+    #             train_size=dm.train_size, 
+    #             n_classes=dm.num_classes
+    #             )
+
+    #     model.model.save_pretrained(save_directory=encoder_path)
+
+    #     print(f"Tx encoder saved to {encoder_path}")
+    #     wandb_logger.experiment.config['encoder_path'] = encoder_path

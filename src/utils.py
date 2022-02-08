@@ -38,8 +38,8 @@ def load_tsv(fname, topk=None):
     return data
 
 
-class LogValMetrics(pl.Callback):
-    """PL Callback to Log whole-val auroc & TP,FP,TN,FP stats 
+class MetricsCallback(pl.Callback):
+    """PL Callback to Log auroc & TP,FP,TN,FP stats 
        using accumulated predictions & labels
 
        (Will probably break on distributed GPU training..)
@@ -57,7 +57,7 @@ class LogValMetrics(pl.Callback):
         self.statscores.to(self.device)
 
         self.result_auc = torch.zeros((n_classes,), device=self.device)
-
+        self.n_classes = n_classes
     def on_validation_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs, batch, batch_idx,_) -> None:
         
         # Accumulate preds/labels across batches
@@ -81,7 +81,7 @@ class LogValMetrics(pl.Callback):
         # When macro is used. last dim is [TP,FP,TN,FN,TP+FN]
         statscores = self.statscores(self.val_preds, self.val_labels.type(torch.int)).type(torch.float)
         
-        for name,score,stats in zip(pl_module.labelset, self.result_auc, torch.tensor_split(statscores,14,dim=0)):
+        for name,score,stats in zip(pl_module.labelset, self.result_auc, torch.tensor_split(statscores,self.n_classes,dim=0)):
             stats = stats.squeeze(0)
 
             results = {'AUC_'+name:score,
@@ -92,21 +92,55 @@ class LogValMetrics(pl.Callback):
                        'SS_'+name+'_SUP':stats[4]}
             self.log_dict(results)
 
-class TimeIt(pl.Callback):
-    """PL Callback to Log whole-val auroc & TP,FP,TN,FP stats 
-       using accumulated predictions & labels
+    def on_test_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs, batch, batch_idx,_) -> None:
+        
+        # Accumulate preds/labels across batches
+        if batch_idx==0:
+            self.test_preds = outputs['preds']
+            self.test_labels = batch['label']
+        else:
+            self.test_preds = torch.vstack((self.test_preds, outputs['preds']))
+            self.test_labels = torch.vstack((self.test_labels, batch['label'])) 
 
-       (Will probably break on distributed GPU training..)
-    """
-    def __init__(self):
-        super().__init__()
-    def on_train_start(self, *args):
-        self.t0 = time.time()
-    def on_epoch_start(self, *args):
-        self.t1 = time.time()
-    def on_epoch_end(self, *args):
-        epoch_time = time.time() - self.t1
-        self.log_dict({'epoch_time':round((epoch_time/60),2)})
-    def on_train_end(self, *args):
-        train_time = time.time() - self.t0
-        self.log_dict({'train_time':round((train_time/60),2)})
+    def on_test_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        # Skip labels that don't have both instances (0,1); no chance of all 1's
+        mask = torch.sum(self.test_labels, dim=0) > 0
+        self.auroc.num_classes = torch.sum(mask)
+
+        # Compute & update AUC for the others; carry over old vals (0) 
+        self.result_auc[mask] = self.auroc(self.test_preds[:,mask], self.test_labels[:,mask].type(torch.int)).to(self.device)
+
+        # Compute stat scores (TP,...) over epoch
+        # StatScores returns tensor of shape (num_classes, 5)
+        # When macro is used. last dim is [TP,FP,TN,FN,TP+FN]
+        statscores = self.statscores(self.test_preds, self.test_labels.type(torch.int)).type(torch.float)
+        
+        for name,score,stats in zip(pl_module.labelset, self.result_auc, torch.tensor_split(statscores,self.n_classes,dim=0)):
+            stats = stats.squeeze(0)
+
+            results = {'TEST_AUC_'+name:score,
+                       'TEST_SS_'+name+'_TP':stats[0],
+                       'TEST_SS_'+name+'_FP':stats[1],
+                       'TEST_SS_'+name+'_TN':stats[2],
+                       'TEST_SS_'+name+'_FN':stats[3],
+                       'TEST_SS_'+name+'_SUP':stats[4]}
+            self.log_dict(results)
+
+# class TimeIt(pl.Callback):
+#     """PL Callback to Log whole-val auroc & TP,FP,TN,FP stats 
+#        using accumulated predictions & labels
+
+#        (Will probably break on distributed GPU training..)
+#     """
+#     def __init__(self):
+#         super().__init__()
+#     def on_train_start(self, *args):
+#         self.t0 = time.time()
+#     def on_epoch_start(self, *args):
+#         self.t1 = time.time()
+#     def on_epoch_end(self, *args):
+#         epoch_time = time.time() - self.t1
+#         self.log_dict({'epoch_time':round((epoch_time/60),2)})
+#     def on_train_end(self, *args):
+#         train_time = time.time() - self.t0
+#         self.log_dict({'train_time':round((train_time/60),2)})

@@ -26,9 +26,7 @@ if __name__=='__main__':
     
     import sys
     args = parse_args(stage='pt')
-
     pl.seed_everything(808, workers=True)
-
     ### DEBUG args
     if len(sys.argv)<2:
         args.dataset = 'mimic'
@@ -50,7 +48,6 @@ if __name__=='__main__':
         # args.load_model= "uclanlp/visualbert-vqa-coco-pre"
         # args.tokenizer='emilyalsentzer/Bio_ClinicalBERT'
         # args.load_cp_path = '/media/matt/data21/mmRad/checkpoints/PT/PT-mlmitm-12hr-benchmark/pl_framework/epoch=23-step=9191.ckpt'
-        
     # Logging & Callbacks
     wandb_logger = WandbLogger(
         name=args.run_name, 
@@ -123,6 +120,8 @@ if __name__=='__main__':
     # Save model states
     print(f"PL Model and state (best val loss) saved to {checkpoint_callback.best_model_path}")
     wandb_logger.experiment.config['pl_framework_path'] = checkpoint_callback.best_model_path
+    
+
     
     if args.save_encoder:
         # Save the encoder at the last epoch

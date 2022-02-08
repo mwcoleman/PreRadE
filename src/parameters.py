@@ -10,7 +10,7 @@ def parse_args(stage):
     parser.add_argument('--name', dest='run_name', default='debug_4')
     parser.add_argument('--log_offline', default=False, type=bool)
     parser.add_argument('--seed', type=int, default=808, help='random seed')
-    parser.add_argument('--max_seq_len', dest='max_seq_len', type=int, default=50)
+    parser.add_argument('--max_seq_len', dest='max_seq_len', type=int, default=125)
     parser.add_argument('--epochs', dest='epochs', type=int, default=200)
     parser.add_argument('--max_hrs', default=24, type=int)
     # base dir for pl framework checkpoint files and hf encoder files
@@ -62,8 +62,8 @@ def parse_args(stage):
     parser.add_argument("--topk", default=5120, type=int)
     parser.add_argument("--val_topk", dest='val_topk', default=None)
     # Sizing
-    parser.add_argument('--batch_size', dest='batch_size', type=int, default=128)
-    parser.add_argument('--valid_batch_size', dest='valid_batch_size', type=int, default=128)
+    parser.add_argument('--batch_size', dest='batch_size', type=int, default=64)
+    parser.add_argument('--valid_batch_size', dest='valid_batch_size', type=int, default=64)
     # Data path
     parser.add_argument('--data_path', dest='data_path', default="/media/matt/data21/mmRad/MIMIC")
     
