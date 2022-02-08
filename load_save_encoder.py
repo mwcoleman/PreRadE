@@ -1,7 +1,7 @@
 import os, re
 import pytorch_lightning as pl
-from modules import MMRadForClassification, MMRadDM, MMRadForPretraining
-from parameters import parse_args
+from src.model import MMRadForClassification, MMRadDM, MMRadForPretraining
+from src.parameters import parse_args
 
 # Edit these as needed to load specific checkpoint
 ROOT = '/media/matt/data21/mmRad/checkpoints/PT'
@@ -9,7 +9,6 @@ run_name = '12L-SWA-mlm_mfr_itm'
 epoch_number = 54
 
 if __name__=='__main__':
-    from parameters import parse_args
     import sys
     args = parse_args(stage='pt')
     #### Just keep this section the same as pretrain.py, 
@@ -52,5 +51,5 @@ if __name__=='__main__':
     print(f'Loading saved model from {args.load_cp_path}')
     model = MMRadForPretraining(args=args, train_size=dm.train_size,tokenizer=args.tokenizer).load_from_checkpoint(args.load_cp_path, args=args, train_size=dm.train_size)
     print(f"saving encoder..")
-    model.model.save_pretrained(save_directory=os.path.join(ROOT,run_name,'backbone',my_cp_path))
-    print(f"backbone from cp {my_cp_path} saved to {os.path.join(ROOT,run_name,'backbone',my_cp_path)}")
+    model.model.save_pretrained(save_directory=os.path.join(ROOT,run_name,'encoder',my_cp_path))
+    print(f"encoder from cp {my_cp_path} saved to {os.path.join(ROOT,run_name,'encoder',my_cp_path)}")

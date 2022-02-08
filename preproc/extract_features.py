@@ -10,7 +10,7 @@ import pandas as pd
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES=True
 
-from utils import (
+from preproc.utils import (
     Extractor,
     FeatureWriterTSV,
     PrepareImageInputs,

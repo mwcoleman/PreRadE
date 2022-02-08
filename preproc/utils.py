@@ -4,7 +4,6 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.data import Dataset
-
 from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.structures.image_list import ImageList
@@ -73,7 +72,7 @@ class Extractor:
         # for boxes
         images = samples[0]
         batched_inputs = samples[1]
-        features = self.model.backbone(images.tensor)
+        features = self.model.encoder(images.tensor)
 
         # Get RPs from the features and image. Based on our config, we get 1000 proposal
         proposals, _ = self.model.proposal_generator(images, features)
@@ -179,7 +178,7 @@ class Extractor:
         and displays the first image in the batch, with its p2,3,4,5,6 features
         and shapes"""
         images = samples[0]
-        features = self.model.backbone(images.tensor)
+        features = self.model.encoder(images.tensor)
 
         sample_img = samples[1][0]['image']
 
@@ -221,13 +220,13 @@ class PrepareImageInputs(object):
     """Convert an image to a model input
     The detectron uses resizing and normalization based on
     the configuration parameters and the input is to be provided using ImageList. 
-    The model.backbone.size_divisibility handles the sizes (padding) such 
+    The model.encoder.size_divisibility handles the sizes (padding) such 
     that the FPN lateral and output convolutional features have same dimensions.
     """
     def __init__(self, extractor):
         # model cfg for resize config. 
         self.cfg = extractor.cfg
-        self.size_divisibility = extractor.model.backbone.size_divisibility
+        self.size_divisibility = extractor.model.encoder.size_divisibility
 
         self.transform_gen = T.ResizeShortestEdge(
             [self.cfg.INPUT.MIN_SIZE_TEST, self.cfg.INPUT.MIN_SIZE_TEST], self.cfg.INPUT.MAX_SIZE_TEST

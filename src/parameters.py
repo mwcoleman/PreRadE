@@ -13,10 +13,10 @@ def parse_args(stage):
     parser.add_argument('--max_seq_len', dest='max_seq_len', type=int, default=50)
     parser.add_argument('--epochs', dest='epochs', type=int, default=200)
     parser.add_argument('--max_hrs', default=24, type=int)
-    # base dir for pl framework checkpoint files and hf backbone files
+    # base dir for pl framework checkpoint files and hf encoder files
     parser.add_argument('--save_cp_path', dest='save_cp_path', type=str, 
                         default='/media/matt/data21/mmRad/checkpoints/')
-    parser.add_argument('--save_backbone', dest='save_backbone', default=True)
+    parser.add_argument('--save_encoder', dest='save_encoder', default=True)
     # location to the pl framework checkpoint (e.g. further pretraining)
     parser.add_argument('--load_cp_path', dest='load_cp_path', default=None)
     ## Tasks ##
@@ -35,7 +35,7 @@ def parse_args(stage):
     parser.add_argument('--tokenizer', default='bert-base-uncased')
     
     # Tx architecture
-    parser.add_argument('--freeze', default=False, help='Freeze Tx backbone')
+    parser.add_argument('--freeze', default=False, help='Freeze Tx encoder')
     parser.add_argument('--num_tx_layers', dest='num_tx_layers', default=12, type=int)
     parser.add_argument('--num_attention_heads', dest='num_attention_heads', default=12, type=int)
     parser.add_argument('--encoder_hidden_size', dest='encoder_hidden_size', default=768, type=int)
