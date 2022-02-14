@@ -33,9 +33,9 @@ if __name__=='__main__':
     ### DEBUG args
     import sys
     if len(sys.argv)<2:
-        args.dataset = 'mimic'
-        args.run_name='mlm_mfr_itm-30-Val_6k-del'
-        args.epochs = 1
+        args.dataset = 'openI'
+        args.run_name='delme'
+        args.epochs = 5
         args.topk = 512 #10240
         args.load_model = "/media/matt/data21/mmRad/checkpoints/PT/12L-SWA-mlm_mfr_itm/backbone/epoch=54-step=91519.ckpt"  #"uclanlp/visualbert-vqa-coco-pre" # 
         args.freeze=False # Freeze the encoder (init from scratch)
@@ -53,8 +53,27 @@ if __name__=='__main__':
         # args.txt_only = True
         # args.easy_classification = True
         args.log_offline = True
-        args.test_data = 'mimic_test_100k.tsv'
-    
+        args.test_data = 'openI_all.tsv'
+ 
+    print(f"""\n\n\nFinetuning with parameters: \n
+    Run name: {args.run_name}
+    Checkpoint loaded from: {args.load_cp_path} 
+    Encoder loaded from: {args.load_model}
+    Tokenizer: {args.tokenizer} 
+    # Att Heads: {args.num_attention_heads}
+    # Layers: {args.num_tx_layers} 
+    Training for max steps / epochs: {args.steps} / {args.epochs}
+    Batch size: {args.batch_size} 
+    Max sequence length: {args.max_seq_len} 
+    Train Dataset: {'mimic' if (args.dataset=='mimic') or (args.dataset=='openI') else args.dataset}
+    Train size: {'full' if args.topk==0 else args.topk}
+    Test Dataset: {args.dataset}
+        
+    Learning Rate: {args.lr}
+    Using Scheduler: {args.lr_scheduler}\n\n\n""")
+
+
+
     dm = MMRadDM(args)
     dm.setup(stage='fit')
     
@@ -115,17 +134,14 @@ if __name__=='__main__':
         callbacks=callbacks,
         logger=wandb_logger,
         log_every_n_steps=10, 
-        max_epochs=args.epochs,
-        max_time={"hours": args.max_hrs}, 
+        max_epochs=args.epochs, 
         deterministic=True,  
         track_grad_norm=-1,
         fast_dev_run=False, 
         benchmark=True,
         )
     
-    print(f"\nBeginning training run with {args.topk} \
-            training examples from {args.dataset}. \
-            Training for {args.epochs} epochs...\n")
+
 
     trainer.fit(model, dm)
 
