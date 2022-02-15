@@ -2,7 +2,7 @@ import csv, base64, time
 import torch, torchmetrics
 import numpy as np
 import pytorch_lightning as pl
-
+import wandb
 
 def load_tsv(fname, topk=None):
     """Load object features from tsv file.
@@ -58,6 +58,7 @@ class MetricsCallback(pl.Callback):
 
         self.result_auc = torch.zeros((n_classes,), device=self.device)
         self.n_classes = n_classes
+    
     def on_validation_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs, batch, batch_idx,_) -> None:
         
         # Accumulate preds/labels across batches
@@ -84,7 +85,7 @@ class MetricsCallback(pl.Callback):
         for name,score,stats in zip(pl_module.labelset, self.result_auc, torch.tensor_split(statscores,self.n_classes,dim=0)):
             stats = stats.squeeze(0)
 
-            results = {'AUC_'+name:score,
+            results = {'VAL_AUC_'+name:score,
                        'SS_'+name+'_TP':stats[0],
                        'SS_'+name+'_FP':stats[1],
                        'SS_'+name+'_TN':stats[2],
@@ -103,44 +104,47 @@ class MetricsCallback(pl.Callback):
             self.test_labels = torch.vstack((self.test_labels, batch['label'])) 
 
     def on_test_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        # TODO: Check if unecessary now due larger & balanced dsets
         # Skip labels that don't have both instances (0,1); no chance of all 1's
         mask = torch.sum(self.test_labels, dim=0) > 0
         self.auroc.num_classes = torch.sum(mask)
 
         # Compute & update AUC for the others; carry over old vals (0) 
+        # auroc returns (num_classes,)
         self.result_auc[mask] = self.auroc(self.test_preds[:,mask], self.test_labels[:,mask].type(torch.int)).to(self.device)
 
         # Compute stat scores (TP,...) over epoch
         # StatScores returns tensor of shape (num_classes, 5)
         # When macro is used. last dim is [TP,FP,TN,FN,TP+FN]
         statscores = self.statscores(self.test_preds, self.test_labels.type(torch.int)).type(torch.float)
-        
+        num_total= torch.sum(statscores,dim=0)[4]
+
+        supports = statscores.cpu().numpy()[:,4]
+        prevs = supports/num_total.cpu().numpy()
+
+        AUC_avg = self.result_auc.mean()
+        wAUC_avg = np.sum((prevs*self.result_auc.cpu().numpy()))
+
+        # Create a wandb table
+        columns=['Label','AUC','# Cases','% Prev', 'TP', 'TN', 'FP', 'FN']
+        table_data = []
         for name,score,stats in zip(pl_module.labelset, self.result_auc, torch.tensor_split(statscores,self.n_classes,dim=0)):
             stats = stats.squeeze(0)
+            s = {k:v for k,v in zip(['TP','FP','TN','FN','SUP'],stats)}
+            prev = np.round((100*s['SUP']/num_total).cpu().numpy(),decimals=2)
+            table_data.append([name,score,s['SUP'],prev ,s['TP'],s['FP'],s['TN'],s['FN']])
 
-            results = {'TEST_AUC_'+name:score,
-                       'TEST_SS_'+name+'_TP':stats[0],
-                       'TEST_SS_'+name+'_FP':stats[1],
-                       'TEST_SS_'+name+'_TN':stats[2],
-                       'TEST_SS_'+name+'_FN':stats[3],
-                       'TEST_SS_'+name+'_SUP':stats[4]}
-            self.log_dict(results)
+        self.log_dict({'Avg_AUC':AUC_avg, 'wAvg_AUC':wAUC_avg})
+        pl_module.logger.log_table(key="tr_table", columns=columns, data=table_data)
 
-# class TimeIt(pl.Callback):
-#     """PL Callback to Log whole-val auroc & TP,FP,TN,FP stats 
-#        using accumulated predictions & labels
+        # Also create a table logging the support of Val dataset for ease
+        val_statscores = self.statscores(self.val_preds, self.val_labels.type(torch.int)).type(torch.float)
+        val_supports = val_statscores.cpu().numpy()[:,4]
+        val_prevs = supports/num_total.cpu().numpy()
 
-#        (Will probably break on distributed GPU training..)
-#     """
-#     def __init__(self):
-#         super().__init__()
-#     def on_train_start(self, *args):
-#         self.t0 = time.time()
-#     def on_epoch_start(self, *args):
-#         self.t1 = time.time()
-#     def on_epoch_end(self, *args):
-#         epoch_time = time.time() - self.t1
-#         self.log_dict({'epoch_time':round((epoch_time/60),2)})
-#     def on_train_end(self, *args):
-#         train_time = time.time() - self.t0
-#         self.log_dict({'train_time':round((train_time/60),2)})
+        pl_module.logger.log_table(key='val_support',
+                                   columns=['# Cases','Prev'],
+                                   data=[val_supports,val_prevs])
+
+        # Log a precision-recall chart
+        # wandb.log({"pr": wandb.plot.pr_curve(self.test_labels, self.test_preds)})
