@@ -30,15 +30,17 @@ if __name__=='__main__':
     ### DEBUG args
     if len(sys.argv)<2:
         args.run_name=args.tasks.replace(",","-")
-        args.max_steps = 200000
-        args.topk = 0
+        args.max_steps = 2000
+        args.topk = 5120
         args.load_model = "uclanlp/visualbert-vqa-coco-pre"
-        args.tasks = "mlm,mfr"
+        args.tasks = "oovm,mlm,mfr"
         args.log_offline = True
 
     # Define run name:
     args.run_name = args.tasks.replace(',','-') if args.run_name == 'tasks' else args.run_name
 
+    # Needed if using OOVM and TokenizerFast:
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     print(f"""\n\n\nPretraining with parameters: \n
     Run name: {args.run_name}
@@ -52,6 +54,7 @@ if __name__=='__main__':
     Batch size: {args.batch_size} 
     Max sequence length: {args.max_seq_len} 
     Dataset: {args.dataset}
+    Subset?: {args.topk}
     
     Learning Rate: {args.lr}
     Using Scheduler: {args.lr_scheduler}\n\n\n""")
