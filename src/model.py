@@ -3,7 +3,6 @@ import torch
 from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss, GELU, BCELoss
 import pytorch_lightning as pl
-from ast import literal_eval
 
 from transformers import (
     BertTokenizer, 
@@ -182,8 +181,7 @@ class MMRadForPretraining(MMRad):
         self.__init_pretraining_heads()
         self.task_step = {'mlm':self.mlm_step, 'mfr':self.mfr_step, 'itm':self.itm_step,
                           'wwm':self.wwm_step}
-        self.hparams.tasks = literal_eval(self.hparams.tasks)
-
+        self.hparams.tasks = self.hparams.tasks.split(',')
 
     def __init_pretraining_heads(self):
         """Initialise the task-specfic heads required for pretraining (e.g. MLM)

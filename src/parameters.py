@@ -7,12 +7,13 @@ def parse_args(stage):
     parser = argparse.ArgumentParser()
 
     ##### TRAINING #####
-    parser.add_argument('--name', dest='run_name', default='debug_4')
+    parser.add_argument('--name', dest='run_name', default='tasks')
+    parser.add_argument('--project', default='mmRad-mimic')
     parser.add_argument('--log_offline', default=False, type=bool)
     parser.add_argument('--seed', type=int, default=808, help='random seed')
     parser.add_argument('--max_seq_len', dest='max_seq_len', type=int, default=125)
     parser.add_argument('--epochs', dest='epochs', type=int, default=200)
-    parser.add_argument('--max_hrs', default=24, type=int)
+    parser.add_argument('--steps', dest='steps',default=200000, type=int)
     # base dir for pl framework checkpoint files and hf encoder files
     parser.add_argument('--save_cp_path', dest='save_cp_path', type=str, 
                         default='/media/matt/data21/mmRad/checkpoints/')
@@ -20,14 +21,14 @@ def parse_args(stage):
     # location to the pl framework checkpoint (e.g. further pretraining)
     parser.add_argument('--load_cp_path', dest='load_cp_path', default=None)
     ## Tasks ##
-    parser.add_argument('--tasks', default="['mlm','itm']", type=str)
+    parser.add_argument('--tasks', default="mlm,itm", type=str)
 
 
 
     ##### MODEL #####
-    parser.add_argument('--load_model', dest='load_model', default=None)
+    parser.add_argument('--load_model', dest='load_model', default="uclanlp/visualbert-vqa-coco-pre")
     parser.add_argument('--load_model_config', dest='load_model_config', default=None)
-    parser.add_argument('--lr', type=float, default=2e-4)
+    parser.add_argument('--lr', type=float, default=5e-5)
     parser.add_argument('--weight_decay', dest='weight_decay', default=0, type=float)
     parser.add_argument('--warmup_ratio', dest='warmup_ratio', default=0.15, type=float,
                         help='decimal fraction of total training steps to schedule warmup')
@@ -59,7 +60,7 @@ def parse_args(stage):
     parser.add_argument("--test_data", default=None)
     parser.add_argument("--drop_last", dest='drop_last', default=True)
     parser.add_argument("--shuffle", default=True)
-    parser.add_argument("--topk", default=5120, type=int)
+    parser.add_argument("--topk", default=0, type=int)
     parser.add_argument("--val_topk", dest='val_topk', default=None)
     # Sizing
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=64)

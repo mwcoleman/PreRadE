@@ -29,25 +29,33 @@ if __name__=='__main__':
     pl.seed_everything(808, workers=True)
     ### DEBUG args
     if len(sys.argv)<2:
-        args.dataset = 'mimic'
-    # args.valid_split = 'mscoco_val' # not used
-        args.run_name='12L-mlm_mfr_itm-del'
-        args.epochs = 200
-        args.topk = 251
+        args.run_name=args.tasks.replace(",","-")
+        args.max_steps = 200000
+        args.topk = 0
         args.load_model = "uclanlp/visualbert-vqa-coco-pre"
-        args.num_attention_heads = 12
-        args.num_tx_layers = 12
-        args.tasks = "['mlm','mfr','itm']"
-        args.lr = 5e-5
+        args.tasks = "mlm,mfr"
         args.log_offline = True
-        args.max_seq_len = 125
-        args.batch_size = 64
-        args.valid_batch_size = 64
-        args.max_hrs = 11
-        # args.val_topk = None  # not used?
-        # args.load_model= "uclanlp/visualbert-vqa-coco-pre"
-        # args.tokenizer='emilyalsentzer/Bio_ClinicalBERT'
-        # args.load_cp_path = '/media/matt/data21/mmRad/checkpoints/PT/PT-mlmitm-12hr-benchmark/pl_framework/epoch=23-step=9191.ckpt'
+
+    # Define run name:
+    args.run_name = args.tasks.replace(',','-') if args.run_name == 'tasks' else args.run_name
+
+
+    print(f"""\n\n\nPretraining with parameters: \n
+    Run name: {args.run_name}
+    Tasks: {args.tasks}
+    Checkpoint loaded from: {args.load_cp_path} 
+    Encoder loaded from: {args.load_model}
+    Tokenizer: {args.tokenizer} 
+    # Att Heads: {args.num_attention_heads}
+    # Layers: {args.num_tx_layers} 
+    Training for max steps / epochs: {args.steps} / {args.epochs}
+    Batch size: {args.batch_size} 
+    Max sequence length: {args.max_seq_len} 
+    Dataset: {args.dataset}
+    
+    Learning Rate: {args.lr}
+    Using Scheduler: {args.lr_scheduler}\n\n\n""")
+
     # Logging & Callbacks
     wandb_logger = WandbLogger(
         name=args.run_name, 
@@ -61,7 +69,9 @@ if __name__=='__main__':
 
     dm = MMRadDM(args)
     dm.setup(stage='fit')
-
+    
+    print(f"\nTrain/Val splits: {dm.train_size} / {dm.valid_size}")
+    
     if args.load_cp_path is None:
         model = MMRadForPretraining(
             args=args,
@@ -103,17 +113,15 @@ if __name__=='__main__':
         callbacks=callbacks,
         logger=wandb_logger, 
         log_every_n_steps=10, 
-        max_epochs=args.epochs,
-        max_time={"hours": args.max_hrs}, 
+        # max_epochs=args.epochs,
+        max_steps=args.steps, 
         deterministic=True, 
         track_grad_norm=-1, 
         fast_dev_run=False, 
         benchmark=True
     )
 
-    print(f"\nBeginning training run with {args.topk} train, \
-            {args.val_topk} val examples from {args.dataset}. \
-            Training for {args.epochs} epochs...\n")
+
     
     trainer.fit(model, dm)
       
@@ -121,15 +129,19 @@ if __name__=='__main__':
     print(f"PL Model and state (best val loss) saved to {checkpoint_callback.best_model_path}")
     wandb_logger.experiment.config['pl_framework_path'] = checkpoint_callback.best_model_path
     
+    # Log the dataset sizes
+    wandb_logger.experiment.config['train_size'] = dm.train_size
+    wandb_logger.experiment.config['valid_size'] = dm.valid_size  
 
-    
+
     if args.save_encoder:
         # Save the encoder at the last epoch
-        model.model.save_pretrained(save_directory=args.save_cp_path + args.run_name + '/encoder/')
+        model.model.save_pretrained(save_directory=encoder_path)
         print(f"Tx encoder (at last epoch) saved to {encoder_path}")
         wandb_logger.experiment.config['encoder_path'] = encoder_path
 
         # Also save encoder from best val
+        # TODO: FIX- 'error; is a dir' error
         model = MMRadForPretraining(
             args=args, 
             train_size=dm.train_size,

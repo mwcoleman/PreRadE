@@ -10,12 +10,11 @@ from src.utils import load_tsv
 
 
 class MMRadDM(pl.LightningDataModule):
-    def __init__(self, args):
+    def __init__(self, args, dataset=None):
         
         super().__init__()
 
         self.save_hyperparameters(args)
-
         self.num_workers = os.cpu_count()
         self.g = torch.Generator()
         self.g.manual_seed(808)
@@ -30,51 +29,65 @@ class MMRadDM(pl.LightningDataModule):
 
         if stage=='fit' or stage is None:
             
+            self.root = self.hparams.data_path
+            self.txt_path = os.path.join(self.root, self.hparams.txt_path)
+            self.img_path = os.path.join(self.root, self.hparams.img_path)
+
             if self.hparams.dataset=='mscoco':
                 self.train_dset = CocoDataset(self.hparams.data_path+'captions_train2017.json',
                         self.hparams.data_path+'img_features/mscoco-train_2017-custom.tsv', topk=self.hparams.topk)
                 self.valid_dset = CocoDataset(self.hparams.data_path+'captions_val2017.json',
                         self.hparams.data_path+'img_features/mscoco-val_2017-custom.tsv', topk=self.hparams.val_topk)
             
-            elif self.hparams.dataset=='mimic':
-                # MIMIC set not split into train/val
-                #txt_path, img_path, labels_path, use_captions='findings', topk=5120
-                self.mimic_root = self.hparams.data_path
-                self.txt_path = os.path.join(self.mimic_root, self.hparams.txt_path)
-                self.img_path = os.path.join(self.mimic_root, self.hparams.img_path)
-                self.label_path = os.path.join(self.mimic_root, 'labels', 'mimic-cxr-2.0.0-chexpert.csv.gz')
-                
+            elif (self.hparams.dataset=='mimic') or (self.hparams.dataset=='openI'):
+
                 mimic_data = MimicDataset(self.txt_path, self.img_path,
                                           topk=self.hparams.topk,
-                                          binary_task=self.hparams.easy_classification)
+                                          binary_task=self.hparams.easy_classification,
+                                          useOpenILabels=(self.hparams.dataset=='openI'))
                 if self.hparams.valid_data is None:
                     print("No val data provided, splitting from train data")
-                    train_set_size = int(len(mimic_data)*0.9)
+                    train_set_size = int(len(mimic_data)*0.98)
                     valid_set_size = len(mimic_data) - train_set_size
                     self.train_dset, self.valid_dset = random_split(mimic_data, [train_set_size, valid_set_size],
                                                                     generator=self.g)
                 else:
-                    valid_path = os.path.join(self.mimic_root,self.hparams.valid_data)
+                    valid_path = os.path.join(self.root,self.hparams.valid_data)
                     self.train_dset = mimic_data
                     self.valid_dset = MimicDataset(self.txt_path, valid_path,
                                           topk=self.hparams.val_topk,
                                           binary_task=self.hparams.easy_classification)
-                    
-                self.num_classes = 1 if self.hparams.easy_classification else 13
+                
                 self.labelset = mimic_data.labelset
+                self.num_classes = 1 if self.hparams.easy_classification else len(self.labelset)
+                
                 self.train_size,self.valid_size = len(self.train_dset), len(self.valid_dset)
                 print(f"Size of train / val / test splits: {self.train_size} / {self.valid_size} / {self.test_size}")
             
+
         if stage=='test' or stage is None:
              
             if self.hparams.test_data is None:
                 pass
             else:
                 if self.hparams.dataset=='mimic':
-                    test_path = os.path.join(self.mimic_root,self.hparams.test_data)
+                    test_path = os.path.join(self.root,self.hparams.test_data)
                     print(f"Loading test data from {test_path}")
                     self.test_dset = MimicDataset(self.txt_path, test_path,
                                           binary_task=self.hparams.easy_classification)
+                    self.test_size = len(self.test_dset)
+                    
+                    print(f"Finished loading.. Size of test set: {self.test_size}")
+                
+                elif self.hparams.dataset=='openI':
+                    # TODO: Fix paths and arguments 
+                    test_path = os.path.join(self.hparams.data_path,'../OPENI')
+                    test_img_path = os.path.join(test_path,self.hparams.test_data)
+                    test_txt_path = os.path.join(test_path,'reports_labels.csv')
+                    print(f"Loading test data from {test_path}")
+                    self.test_dset = OpenIDataset(test_txt_path, test_img_path,
+                                          binary_task=self.hparams.easy_classification)
+                    self.labelset = self.test_dset.labelset
                     self.test_size = len(self.test_dset)
                     
                     print(f"Finished loading.. Size of test set: {self.test_size}")
@@ -83,8 +96,6 @@ class MMRadDM(pl.LightningDataModule):
         worker_seed = torch.initial_seed() % 2**32
         np.random.seed(worker_seed)
         random.seed(worker_seed)
-
-
     def train_dataloader(self):
         dl = DataLoader(
             self.train_dset, batch_size=self.hparams.batch_size,
@@ -95,7 +106,6 @@ class MMRadDM(pl.LightningDataModule):
             generator=self.g,
         )
         return dl
-
     def val_dataloader(self):
         dl = DataLoader(
             self.valid_dset, batch_size=self.hparams.valid_batch_size,
@@ -106,7 +116,6 @@ class MMRadDM(pl.LightningDataModule):
             generator=self.g,
         )
         return dl
-    
     def test_dataloader(self):
         if self.test_dset is not None:
             dl = DataLoader(
@@ -122,41 +131,81 @@ class MMRadDM(pl.LightningDataModule):
             dl = None
         return dl
 
+class OpenIDataset(Dataset):
+    """Open-I (IU-XRAY) dataset with extracted visual features
+    and labels. For evaluation purpose only.
+    Processed (frontal) images and labels from https://github.com/YIKUAN8/Transformers-VQA"""
+
+    def __init__(self, txt_path, img_path, binary_task=False):
+        super().__init__()
+        self.binary_task = binary_task
+        self.img_data = load_tsv(img_path, topk=0)
+        self.txt_data = pd.read_csv(txt_path)
+        
+        # Labelset is different to MIMIC, filter to those present in both.
+        self.labelset = ['Atelectasis','Cardiomegaly', 'Consolidation', 
+                         'Edema', 'Pneumonia', 'Pneumothorax', 
+                         'Pleural Effusion']
+        if self.binary_task:
+            # TODO: Use txt_data above not separate file
+            self.label_data = (self.label_data.sum(axis=1)>0).astype(int)
+    def __len__(self):
+        return len(self.img_data)        
+    
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        
+        # Produces a sample per txt sequence- image features are duplicated for each.        
+        selected = self.txt_data.iloc[idx]
+        img_data = self.img_data[str(selected['id'])]
+        caption = selected['report']
+   
+        sample = {'txt': {'raw' : caption},
+                  'img': {'id' : selected['id'], 
+                          'features' : img_data['features'], 
+                          'boxes' : img_data['boxes'],
+                          'num_boxes' : img_data['num_boxes'], 
+                          'img_h' : img_data['img_h'],
+                          'img_w' : img_data['img_w']
+                          },
+                  'label': np.asarray(selected[self.labelset].astype(float))
+                 }
+        return sample
+
 class MimicDataset(Dataset):
     """Mimic-cxr dataset with extracted visual features,
     captions (from impressions), ID, view, ..."""
     def __init__(self, txt_path, img_path, 
-                 topk=0, binary_task=False):
+                 topk=0, binary_task=False, useOpenILabels=False):
         super().__init__()
         self.binary_task = binary_task
         
         self.img_data = load_tsv(img_path, topk=topk)
         self.txt_data = pd.read_csv(txt_path)
-        self.labelset = ['Atelectasis', 'Cardiomegaly', 'Consolidation',
+        
+
+        if useOpenILabels:
+            self.labelset = ['Atelectasis','Cardiomegaly', 'Consolidation', 
+                         'Edema', 'Pneumonia', 'Pneumothorax', 
+                         'Pleural Effusion']
+        else:
+            self.labelset = ['Atelectasis', 'Cardiomegaly', 'Consolidation',
                          'Edema', 'Enlarged Cardiomediastinum', 'Fracture',
                          'Lung Lesion', 'Lung Opacity',
                          'Pleural Effusion', 'Pleural Other', 'Pneumonia',
                          'Pneumothorax', 'Support Devices']
 
-
-        # label_cats = self.label_data.columns[2:]
-        
-
-        # Filter img_ids to match loaded topk
-        # This also filters on the PT or FT split of img features
         self.txt_data = self.txt_data[self.txt_data['dicom_id'].isin(self.img_data.keys())]
         self.txt_data.reset_index(inplace=True)
 
         # Get label data, default chexpert
         self.label_data = self.txt_data[self.labelset]
-        # add labels - filter/sort on reports
-        # self.txt_data = self.txt_data.merge(self.label_data, on='study_id', how='left')
-        # self.labels_data = np.nan_to_num(np.asarray(self.txt_data[label_cats]))
-        # self.labels_data[self.labels_data < 0] = 0
         if self.binary_task:
+            # TODO: Change to be the df above, not separate file.
             # Any finding.
             self.label_data = (self.label_data.sum(axis=1)>0).astype(int)
-        
+
     def __len__(self):
         return len(self.img_data)        
     
@@ -168,12 +217,7 @@ class MimicDataset(Dataset):
         selected = self.txt_data.iloc[idx]
         img_data = self.img_data[selected['dicom_id']]
         caption = selected['report']
-        # caption = selected['findings'] if self.use_captions == 'findings' else selected['impression']
-        
-        # label = self.label_data[self.label_data['study_id']==selected['study_id']]['labels'].values
-        
-        # TODO: if adding view to the input data,  preprocess to remove NaNs,
-        #       else collate_fn bugs out         
+   
         sample = {'txt': {'raw' : caption}, #'view': selected['view']},   Need to convert NaN to str to use this, or collate_fn bugs out.
                           
                   'img': {'id' : selected['dicom_id'], 

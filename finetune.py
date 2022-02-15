@@ -35,9 +35,9 @@ if __name__=='__main__':
     if len(sys.argv)<2:
         args.dataset = 'openI'
         args.run_name='delme'
-        args.epochs = 5
+        args.epochs = 1
         args.topk = 512 #10240
-        args.load_model = "/media/matt/data21/mmRad/checkpoints/PT/12L-SWA-mlm_mfr_itm/backbone/epoch=54-step=91519.ckpt"  #"uclanlp/visualbert-vqa-coco-pre" # 
+        args.load_model = "/media/matt/data21/mmRad/checkpoints/PT/mlm-mfr-itm/encoder" #/media/matt/data21/mmRad/checkpoints/PT/12L-SWA-mlm_mfr_itm/backbone/epoch=54-step=91519.ckpt"  #"uclanlp/visualbert-vqa-coco-pre" # 
         args.freeze=False # Freeze the encoder (init from scratch)
         args.img_only = False
         args.img_path = 'mimic_val_100k.tsv'
@@ -65,7 +65,7 @@ if __name__=='__main__':
     Training for max steps / epochs: {args.steps} / {args.epochs}
     Batch size: {args.batch_size} 
     Max sequence length: {args.max_seq_len} 
-    Train Dataset: {'mimic' if (args.dataset=='mimic') or (args.dataset=='openI') else args.dataset}
+    Train Dataset: {args.img_path}
     Train size: {'full' if args.topk==0 else args.topk}
     Test Dataset: {args.dataset}
         
@@ -106,12 +106,13 @@ if __name__=='__main__':
     ## Logging & Callbacks
     wandb_logger = WandbLogger(
         name=args.run_name, 
-        project='mmRad-mimic', 
+        project=args.project, 
         offline= args.log_offline
         )
 
     wandb_logger.watch(model)
     wandb_logger.experiment.config.update(args)
+    
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
@@ -121,12 +122,11 @@ if __name__=='__main__':
     )
     lr_monitor = LearningRateMonitor(logging_interval='step')
     auroc_metrics = MetricsCallback(dm.num_classes)
-    swa = StochasticWeightAveraging()
+    # swa = StochasticWeightAveraging()
 
     callbacks = [#checkpoint_callback, 
                  lr_monitor, 
-                 auroc_metrics, 
-                 swa]
+                 auroc_metrics]
 
     trainer = pl.Trainer.from_argparse_args(
         args, 
@@ -148,7 +148,8 @@ if __name__=='__main__':
     # Eval
     if args.test_data is not None:
         trainer.test(model, test_dataloaders=dm)
-
+        wandb_logger.experiment.config['test_size'] = dm.test_size
+    
     # Save CP & encoder
     trainer.save_checkpoint(cp_path)
     print(f"Checkpoint saved to {cp_path}")
@@ -158,26 +159,7 @@ if __name__=='__main__':
         print(f"Encoder weights saved to {encoder_path}")
         wandb_logger.experiment.config['encoder_path'] = encoder_path
 
-
-
-    # # Save model states
-    # print(f"PL Model and state saved to {checkpoint_callback.best_model_path}")
-    # wandb_logger.experiment.config['pl_framework_path'] = checkpoint_callback.best_model_path
+    # Log the dataset sizes
+    wandb_logger.experiment.config['train_size'] = dm.train_size
+    wandb_logger.experiment.config['valid_size'] = dm.valid_size
     
-    # if args.save_encoder:
-
-    #     model = MMRadForClassification(
-    #         args=args,
-    #         train_size=dm.train_size, 
-    #         n_classes=dm.num_classes
-    #         ).load_from_checkpoint(
-    #             checkpoint_callback.best_model_path,
-    #             args=args,
-    #             train_size=dm.train_size, 
-    #             n_classes=dm.num_classes
-    #             )
-
-    #     model.model.save_pretrained(save_directory=encoder_path)
-
-    #     print(f"Tx encoder saved to {encoder_path}")
-    #     wandb_logger.experiment.config['encoder_path'] = encoder_path
