@@ -11,7 +11,7 @@ from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES=True
 
 
-from utils import (
+from pp_utils import (
     Extractor,
     FeatureWriterTSV,
     PrepareImageInputs,
@@ -237,17 +237,6 @@ if __name__=='__main__':
     
     prepare = PrepareImageInputs(d2_rcnn)
     
-    # Test with mimic pic
-    # image = plt.imread('./mimic_sample.jpg')
-    # image = cv2.resize(plt.imread(img_name), self.resize_dim, interpolation=cv2.INTER_AREA)
-    # expects BGR
-    # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
-    # batch = {'images':[image]}
-    # samples = prepare(batch)
-    # d2_rcnn.show_sample(samples)
-    # d2_rcnn.visualise_features(samples)
-    
-    # # ###
     import time
     start_time = time.time()
     num_batches = len(dataset)/BATCH_SIZE
@@ -277,4 +266,4 @@ if __name__=='__main__':
         if batch_idx%100==0:
             print(f'Batch {batch_idx} of {num_batches} ({round((batch_idx/num_batches)*100,2)}%), time (min): {round((time.time()-start_time)/60, 2)}')
     elapsed_time = time.time()-start_time
-    print(f"Fin. Extracted features from {len(loader)} images in {elapsed_time} seconds..")
+    print(f"Fin. Extracted features from {len(loader)*BATCH_SIZE} images in {elapsed_time/60:.2f} mins..")
