@@ -9,14 +9,14 @@ class PretextProcessor:
     """
     
     def __init__(self, tokenizer, max_seq_len=20, 
-                 mlm_rate=0.15, emlm_rate=0.40,
+                 mlm_rate=0.15, oovm_rate=0.40,
                  mfr_rate=0.15,
                  itm_rate=0.5):
 
         self.mlm_rate = mlm_rate
         self.mfr_rate = mfr_rate
         self.itm_rate = itm_rate
-        self.emlm_rate = emlm_rate
+        self.oovm_rate = oovm_rate
 
         self.tok = tokenizer
         self.max_seq_len = max_seq_len
@@ -43,7 +43,7 @@ class PretextProcessor:
         batch['img']['type_ids'] = torch.zeros((len(batch), num_features), device=self.device)
         return batch
 
-    def tokenize_pad_vectorize(self, batch, task=None):
+    def tokenize_pad_vectorize(self, batch, return_word_ids=False):
        
         # transformers > 4.0.0 replace
         encoded = self.tok(
@@ -66,13 +66,14 @@ class PretextProcessor:
         batch['txt']['pos_ids'] = torch.ones_like(batch['txt']['input_ids'], device=self.device)
         batch['txt']['pos_ids'] *= torch.arange(0,batch['txt']['input_ids'].size()[1], 1, device=self.device)
 
-        if task=='emlm':
+        if return_word_ids:
             # Store the index of tokens in each sequence
-            batch['txt']['word_ids'] = torch.vstack([e.word_ids for e in encoded._encodings], device=self.device)
+            batch['txt']['word_ids'] = [[-1 if x is None else x for x in w] for w in [e.word_ids for e in encoded._encodings]]
+            # batch['txt']['word_ids'] = torch.tensor(word_ids, dtype=int, device=self.device)
 
         return batch
     
-    def mask_txt(self, batch):
+    def mask_token(self, batch):
         """Returns masked inputs and labels over text inputs
         Generally follows https://keras.io/examples/nlp/masked_language_modeling/"""
         inp_mask = torch.rand(batch['txt']['input_ids'].size(), dtype=torch.float32) < self.mlm_rate
@@ -130,7 +131,7 @@ class PretextProcessor:
 
         return batch
 
-    def whole_word_mask(self,batch):
+    def mask_whole_word(self,batch):
         """Returns masked inputs and labels over text inputs
         samples from candidate whole words not parts of.
         batch: training data
@@ -193,7 +194,7 @@ class PretextProcessor:
         return batch
     
     
-    def oov_masking(self, batch):
+    def mask_oov_word(self, batch):
         """A quick and dirty approach to entity masking, assuming that 
         a general domain pretrained tokenizer (e.g. bert-base) will not recognise medical entities
         - Filter masking candidates to only those that are broken into subword tokens
@@ -202,10 +203,10 @@ class PretextProcessor:
         Requires use of the Fast tokenizer class from HF. e.g. BertTokenizerFast
 
         Args:
-            batch ([type]): The (tokenized) input batch
+            batch (dict): The (tokenized) input batch
 
         Returns:
-            [type]: Batch with masked_input_ids as per wwm task.
+            batch (dict): Batch with masked_input_ids as per wwm task.
         """
         # Instantiate masked inputs
         batch['txt']['masked_input_ids'] = batch['txt']['input_ids'].detach().clone()
@@ -224,14 +225,14 @@ class PretextProcessor:
         
 
         for sample_idx,(sample_input_ids,sample_subword) in \
-            enumerate(batch['txt']['input_ids'],subword_idxs):
+            enumerate(zip(batch['txt']['input_ids'],subword_idxs)):
             
             if sample_subword == set():
                 # Sample has no subword tokens
                 continue
             cand_indexes = [list(range(start_idx,end_idx+1)) for 
                             start_idx,end_idx in sample_subword]
-            sent_len = len([t for t in sample_subword if t is not None])
+            sent_len = len([t for t in sample_input_ids if (t > 0)])-2
 
 
             random.shuffle(cand_indexes)

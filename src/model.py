@@ -179,7 +179,7 @@ class MMRadForPretraining(MMRad):
 
         self.__init_pretraining_heads()
         self.task_step = {'mlm':self.mlm_step, 'mfr':self.mfr_step, 'itm':self.itm_step,
-                          'wwm':self.wwm_step}
+                          'wwm':self.wwm_step, 'oovm':self.oovm_step}
         self.hparams.tasks = self.hparams.tasks.split(',')
 
     def __init_pretraining_heads(self):
@@ -199,12 +199,21 @@ class MMRadForPretraining(MMRad):
 
             head.apply(self.init_weights)
 
+    def mlm_step(self, batch, batch_idx):
+        # called mlm as per literature but is token masking
+        batch = self.pp.mask_token(batch)
+        return self.lm_step(batch, batch_idx)
 
     def wwm_step(self, batch, batch_idx):
-        return self.mlm_step(batch, batch_idx, subtask='wwm')
+        batch = self.pp.mask_whole_word(batch)
+        return self.lm_step(batch, batch_idx)
+    
+    def oovm_step(self, batch, batch_idx):
+        batch = self.pp.mask_oov_word(batch)
+        return self.lm_step(batch, batch_idx)
 
-    def mlm_step(self, batch, batch_idx, subtask='mlm'):
-        """Computes forward pass and loss for all text related prediction tasks
+    def lm_step(self, batch, batch_idx):
+        """Computes forward pass and loss for all language modelling (text) tasks
            (MLM, WWM, Span-MLM, ...)
 
         Args:
@@ -215,10 +224,6 @@ class MMRadForPretraining(MMRad):
         Returns:
             (dict): Dictionary containing loss and accuracy for the batch.
         """
-        if subtask=='mlm':
-            batch = self.pp.mask_txt(batch)
-        elif subtask=='wwm':
-            batch = self.pp.whole_word_mask(batch)
 
         # TODO: Fix this up so it can be called in shared step (see mfr_step)
         batch = self.pp.img_vectorize(batch, model=self)     
@@ -347,9 +352,9 @@ class MMRadForPretraining(MMRad):
         """
         # Sample a pretext task for each iteration
         task = random.choice(self.hparams.tasks)
-        batch = self.pp.tokenize_pad_vectorize(batch)
+        batch = self.pp.tokenize_pad_vectorize(batch, return_word_ids=(task=='oovm'))
         # Preprocess based on the pretext tasks
-        metrics = self.task_step[task](batch, batch_idx) #self.shared_step(batch, batch_idx, task)
+        metrics = self.task_step[task](batch, batch_idx) 
         logs = {'train_'+task+'_'+k:v for k,v in metrics.items()}
         self.log_dict(logs, on_step = True, on_epoch = True, prog_bar = True,
                       logger = True, batch_size = self.hparams.batch_size)
@@ -365,11 +370,11 @@ class MMRadForPretraining(MMRad):
         """
         tot_loss = 0
         logs = {}
-
-        batch = self.pp.tokenize_pad_vectorize(batch)
+        
+        batch = self.pp.tokenize_pad_vectorize(batch, return_word_ids=('oovm' in self.hparams.tasks))
         # Validation step calculates loss for all selected tasks
         for task in self.hparams.tasks:
-            metrics = self.task_step[task](batch, batch_idx) #self.shared_step(batch, batch_idx, task)
+            metrics = self.task_step[task](batch, batch_idx) 
             tot_loss += metrics['loss']
 
             task_log = {'val_'+task+'_'+k:v for k,v in metrics.items()}
