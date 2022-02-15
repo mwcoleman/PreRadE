@@ -5,7 +5,7 @@ from torch.nn import CrossEntropyLoss, MSELoss, GELU, BCELoss
 import pytorch_lightning as pl
 
 from transformers import (
-    BertTokenizer, 
+    BertTokenizerFast, 
     VisualBertModel, 
     VisualBertConfig, 
     AdamW,
@@ -110,9 +110,8 @@ class MMRad(pl.LightningModule):
             tok_path = './'+tok+'/'
             print("Local Tokenizer exists")
         else:
-            # download
             tok_path = tok
-        self.tokenizer = BertTokenizer.from_pretrained(
+        self.tokenizer = BertTokenizerFast.from_pretrained(
             tok_path,
             do_lower_case=True
         )

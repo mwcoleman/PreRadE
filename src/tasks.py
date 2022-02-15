@@ -1,5 +1,6 @@
 import random
 import torch
+from collections import Counter
 
 class PretextProcessor:
     """
@@ -7,11 +8,15 @@ class PretextProcessor:
     pre-text manipulation of a batch of img+text (e.g. masking, retrieval...)
     """
     
-    def __init__(self, tokenizer, max_seq_len=20, mlm_rate=0.15, mfr_rate=0.15,
+    def __init__(self, tokenizer, max_seq_len=20, 
+                 mlm_rate=0.15, emlm_rate=0.40,
+                 mfr_rate=0.15,
                  itm_rate=0.5):
+
         self.mlm_rate = mlm_rate
         self.mfr_rate = mfr_rate
         self.itm_rate = itm_rate
+        self.emlm_rate = emlm_rate
 
         self.tok = tokenizer
         self.max_seq_len = max_seq_len
@@ -38,7 +43,7 @@ class PretextProcessor:
         batch['img']['type_ids'] = torch.zeros((len(batch), num_features), device=self.device)
         return batch
 
-    def tokenize_pad_vectorize(self, batch):
+    def tokenize_pad_vectorize(self, batch, task=None):
        
         # transformers > 4.0.0 replace
         encoded = self.tok(
@@ -56,10 +61,14 @@ class PretextProcessor:
 
         
         # Generate other needed inputs for vbert/tx models
-        batch['txt']['type_ids'] = torch.zeros_like(batch['txt']['input_ids']).to(self.device)
+        batch['txt']['type_ids'] = torch.zeros_like(batch['txt']['input_ids'], device=self.device)
         
-        batch['txt']['pos_ids'] = torch.ones_like(batch['txt']['input_ids']).to(self.device)
-        batch['txt']['pos_ids'] *= torch.arange(0,batch['txt']['input_ids'].size()[1], 1).to(self.device)
+        batch['txt']['pos_ids'] = torch.ones_like(batch['txt']['input_ids'], device=self.device)
+        batch['txt']['pos_ids'] *= torch.arange(0,batch['txt']['input_ids'].size()[1], 1, device=self.device)
+
+        if task=='emlm':
+            # Store the index of tokens in each sequence
+            batch['txt']['word_ids'] = torch.vstack([e.word_ids for e in encoded._encodings], device=self.device)
 
         return batch
     
@@ -151,7 +160,80 @@ class PretextProcessor:
                     cand_indexes[-1].append(i)
                 else:
                     cand_indexes.append([i])       
+            # Remaining code is as per whole word masking
+            random.shuffle(cand_indexes)
+            num_to_predict = min(self.max_seq_len, max(1, int(round(sent_len * self.emlm_rate))))
+            masked_lms = []
+            covered_indexes = set()
+            for index_set in cand_indexes:
+                if len(masked_lms) >= num_to_predict:
+                    break
+                # If adding a whole-word mask would exceed the maximum number of
+                # predictions, then just skip this candidate.
+                if len(masked_lms) + len(index_set) > num_to_predict:
+                    continue
+                is_any_index_covered = False
+                for index in index_set:
+                    if index in covered_indexes:
+                        is_any_index_covered = True
+                        break
+                if is_any_index_covered:
+                    continue
+                for index in index_set:
+                    covered_indexes.add(index)
+                    masked_lms.append(index)
+
+            assert len(covered_indexes) == len(masked_lms)
+            covered_indexes = list(covered_indexes)
+            # mask_labels = [1 if i in covered_indexes else 0 for i in range(len(input_tokens))]
+
+            batch['txt']['masked_input_ids'][sample_idx,covered_indexes] = torch.full((len(covered_indexes),),103, device=self.device)
+            labels[sample_idx,covered_indexes] = sample_input_ids[covered_indexes]  
+        batch['txt']['masked_labels'] = labels.to(self.device)
+        return batch
+    
+    
+    def oov_masking(self, batch):
+        """A quick and dirty approach to entity masking, assuming that 
+        a general domain pretrained tokenizer (e.g. bert-base) will not recognise medical entities
+        - Filter masking candidates to only those that are broken into subword tokens
+        - Mask the entity (all subword tokens) up till the masking budget (oovmlm_rate) 
+          is allocated on a per-sample bass
+        Requires use of the Fast tokenizer class from HF. e.g. BertTokenizerFast
+
+        Args:
+            batch ([type]): The (tokenized) input batch
+
+        Returns:
+            [type]: Batch with masked_input_ids as per wwm task.
+        """
+        # Instantiate masked inputs
+        batch['txt']['masked_input_ids'] = batch['txt']['input_ids'].detach().clone()
+        # Set targets to -100 by default to ignore
+        labels = -100 * torch.ones_like(batch['txt']['input_ids'], device=self.device)        
+
+        # Get start and end positions of subword tokens
+        def get_subwords(word_ids):
+            """Returns a set of tuples of subword token position and spans
+            given a sequence's corresponding word_ids
+            """
+            return {(word_ids.index(k),word_ids.index(k)+v-1) for 
+                    k,v in Counter(word_ids[1:-1]).items() if (v>1)}
             
+        subword_idxs = [get_subwords(wid) for wid in batch['txt']['word_ids']]
+        
+
+        for sample_idx,(sample_input_ids,sample_subword) in \
+            enumerate(batch['txt']['input_ids'],subword_idxs):
+            
+            if sample_subword == set():
+                # Sample has no subword tokens
+                continue
+            cand_indexes = [list(range(start_idx,end_idx+1)) for 
+                            start_idx,end_idx in sample_subword]
+            sent_len = len([t for t in sample_subword if t is not None])
+
+
             random.shuffle(cand_indexes)
             num_to_predict = min(self.max_seq_len, max(1, int(round(sent_len * self.mlm_rate))))
             masked_lms = []
@@ -182,8 +264,6 @@ class PretextProcessor:
             labels[sample_idx,covered_indexes] = sample_input_ids[covered_indexes]  
         batch['txt']['masked_labels'] = labels.to(self.device)
         return batch
-    def entity_masking(self, batch, wordlist):
-        pass
 
     def span_mask(self, batch):
         """Masks contiguous spans of words up to the masking budget (mlm rate, e.g. 15%)
