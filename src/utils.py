@@ -126,7 +126,7 @@ class MetricsCallback(pl.Callback):
         wAUC_avg = np.sum((prevs*self.result_auc.cpu().numpy()))
 
         # Create a wandb table
-        columns=['Label','AUC','# Cases','% Prev', 'TP', 'TN', 'FP', 'FN']
+        columns=['Label','AUC','# Cases','% Prev', 'TP', 'FP', 'TN', 'FN']
         table_data = []
         for name,score,stats in zip(pl_module.labelset, self.result_auc, torch.tensor_split(statscores,self.n_classes,dim=0)):
             stats = stats.squeeze(0)
@@ -142,9 +142,11 @@ class MetricsCallback(pl.Callback):
         val_supports = val_statscores.cpu().numpy()[:,4]
         val_prevs = supports/num_total.cpu().numpy()
 
-        pl_module.logger.log_table(key='val_support',
-                                   columns=['# Cases','Prev'],
-                                   data=[val_supports,val_prevs])
+        # TODO: Fix this 'ValueError: This table expects 2 columns: ['# Cases', 'Prev'], found 7'
+
+        # pl_module.logger.log_table(key='val_support',
+        #                            columns=['# Cases','Prev'],
+        #                            data=[val_supports,val_prevs])
 
         # Log a precision-recall chart
         # wandb.log({"pr": wandb.plot.pr_curve(self.test_labels, self.test_preds)})

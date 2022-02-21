@@ -29,18 +29,17 @@ if __name__=='__main__':
     pl.seed_everything(808, workers=True)
     ### DEBUG args
     if len(sys.argv)<2:
-        args.run_name=args.tasks.replace(",","-")
-        args.max_steps = 2000
-        args.topk = 5120
+        # args.max_steps = 2000
+        # args.topk = 5120
         args.load_model = "uclanlp/visualbert-vqa-coco-pre"
-        args.tasks = "oovm,mlm,mfr"
-        args.log_offline = True
+        args.tasks = "oovm,mfr,itm"
+        # args.log_offline = True
 
     # Define run name:
     args.run_name = args.tasks.replace(',','-') if args.run_name == 'tasks' else args.run_name
 
-    # Needed if using OOVM and TokenizerFast:
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    # Needed if using TokenizerFast:
+    os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
     print(f"""\n\n\nPretraining with parameters: \n
     Run name: {args.run_name}
