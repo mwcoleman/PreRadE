@@ -27,7 +27,7 @@ def parse_args(stage):
 
     ##### MODEL #####
     parser.add_argument('--load_model', dest='load_model', default="uclanlp/visualbert-vqa-coco-pre")
-    parser.add_argument('--load_model_config', dest='load_model_config', default=None)
+    # parser.add_argument('--load_model_config', dest='load_model_config', default=None)
     parser.add_argument('--lr', type=float, default=5e-5)
     parser.add_argument('--weight_decay', dest='weight_decay', default=0, type=float)
     parser.add_argument('--warmup_ratio', dest='warmup_ratio', default=0.15, type=float,
@@ -50,14 +50,21 @@ def parse_args(stage):
     parser.add_argument('--img_only', dest='img_only', default=False, type=bool)
     parser.add_argument('--txt_only', dest='txt_only', default=False, type=bool)
     parser.add_argument('--easy_classification', default=False)
+
     ##### DATA #####
 
     # Data splits
-    parser.add_argument("--dataset", dest='dataset', default='mimic')
-    parser.add_argument("--txt_path", default='studies_with_splits.csv')
-    parser.add_argument("--img_path", default='mimic_train_100k.tsv')
-    parser.add_argument("--valid_data", dest='valid_data', default=None) # name of .tsv file
-    parser.add_argument("--test_data", default=None)
+    parser.add_argument("--train", default='mimic_100')
+
+    parser.add_argument("--test", default='mimic')
+    parser.add_argument("--use_val_split", default=False, type=bool) # Splits from train by default
+    parser.add_argument("--no_evaluation", default=False, type=bool) # eval model after
+    parser.add_argument("--no_finetune", default=False, type=bool)
+    # parser.add_argument("--dataset", dest='dataset', default='mimic')
+    # parser.add_argument("--txt_path", default='studies_with_splits.csv')
+    # parser.add_argument("--img_path", default='mimic_train_100k.tsv')
+    # parser.add_argument("--valid_data", dest='valid_data', default=None) # name of .tsv file
+    # parser.add_argument("--test_data", default=None)
     parser.add_argument("--drop_last", dest='drop_last', default=True)
     parser.add_argument("--shuffle", default=True)
     parser.add_argument("--topk", default=0, type=int)

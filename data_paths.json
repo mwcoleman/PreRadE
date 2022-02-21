@@ -1,0 +1,11 @@
+{"mimic_root":"/media/matt/data21/mmRad/MIMIC",
+"openI_root":"/media/matt/data21/mmRad/OPENI",
+"mimic_txt":"studies_with_splits.csv",
+"mimic_100_train":"mimic_train_100k.tsv",
+"mimic_100_val":"",
+"mimic_5_train":"mimic_val_100k.tsv",
+"mimic_5_val":"",
+"mimic_test":"mimic_test_100k.tsv",
+"openI_txt":"reports_labels.csv",
+"openI_test":"openI_all.tsv",
+"pt_checkpoint_root":"/media/matt/data21/mmRad/checkpoints/PT"}
