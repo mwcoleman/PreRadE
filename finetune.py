@@ -51,7 +51,7 @@ if __name__=='__main__':
         # args.load_model = '/media/matt/data21/mmRad/checkpoints/FT/FT-baseline/encoder'#"/media/matt/data21/mmRad/checkpoints/PT/mlm-mfr-itm/encoder" #/media/matt/data21/mmRad/checkpoints/PT/12L-SWA-mlm_mfr_itm/backbone/epoch=54-step=91519.ckpt"  #"uclanlp/visualbert-vqa-coco-pre" # 
         args.log_offline = True
 
-    args.run_name = args.tasks.replace(',','-') if args.run_name == 'tasks' else args.run_name
+    args.run_name = args.load_model if args.run_name=='tasks' else args.run_name
 
 
     print(f"""\n\n\nFinetuning with parameters: \n

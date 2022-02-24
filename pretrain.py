@@ -1,4 +1,4 @@
-import os
+import os, json
 import pytorch_lightning as pl
 import wandb
 from pytorch_lightning.loggers import WandbLogger
@@ -19,7 +19,10 @@ warnings.filterwarnings(
     "ignore", ".*DataModule.setup has already been called.*"
 )
 ##
-
+def load_paths_dict(cfg='data_paths.json'):
+    with open(cfg, 'r') as file:
+        pd = json.loads(file.read()) # use `json.loads` to do the reverse
+    return pd
 
 # Sample run 
 if __name__=='__main__':
@@ -32,11 +35,13 @@ if __name__=='__main__':
         # args.max_steps = 2000
         # args.topk = 5120
         args.load_model = "uclanlp/visualbert-vqa-coco-pre"
-        args.tasks = "oovm,mfr,itm"
+        args.tasks = "mfr"
         # args.log_offline = True
 
     # Define run name:
     args.run_name = args.tasks.replace(',','-') if args.run_name == 'tasks' else args.run_name
+    
+    path_dict = load_paths_dict()
 
     # Needed if using TokenizerFast:
     os.environ["TOKENIZERS_PARALLELISM"] = "true"
@@ -52,7 +57,7 @@ if __name__=='__main__':
     Training for max steps / epochs: {args.steps} / {args.epochs}
     Batch size: {args.batch_size} 
     Max sequence length: {args.max_seq_len} 
-    Dataset: {args.dataset}
+    Dataset: {args.train}
     Subset?: {args.topk}
     
     Learning Rate: {args.lr}
@@ -69,7 +74,7 @@ if __name__=='__main__':
     # Used with sweep agent
     wandb.init(config=wandb_logger.experiment.config)
 
-    dm = MMRadDM(args)
+    dm = MMRadDM(args, path_dict)
     dm.setup(stage='fit')
     
     print(f"\nTrain/Val splits: {dm.train_size} / {dm.valid_size}")
