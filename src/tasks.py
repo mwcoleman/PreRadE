@@ -1,5 +1,6 @@
 import random
 import torch
+import numpy as np
 from collections import Counter
 
 class PretextProcessor:
@@ -193,7 +194,14 @@ class PretextProcessor:
         batch['txt']['masked_labels'] = labels.to(self.device)
         return batch
     
-    
+    def get_subwords(self,word_ids):
+        """Returns a set of tuples of subword token start position and corresponding token span
+        given a sequence's word_ids
+        """
+        return {(word_ids.index(k),word_ids.index(k)+v-1) for 
+                k,v in Counter(word_ids[1:-1]).items() if (v>1)}
+
+
     def mask_oov_word(self, batch):
         """A quick and dirty approach to entity masking, assuming that 
         a general domain pretrained tokenizer (e.g. bert-base) will not recognise medical entities
@@ -214,15 +222,7 @@ class PretextProcessor:
         labels = -100 * torch.ones_like(batch['txt']['input_ids'], device=self.device)        
 
         # Get start and end positions of subword tokens
-        def get_subwords(word_ids):
-            """Returns a set of tuples of subword token position and spans
-            given a sequence's corresponding word_ids
-            """
-            return {(word_ids.index(k),word_ids.index(k)+v-1) for 
-                    k,v in Counter(word_ids[1:-1]).items() if (v>1)}
-            
-        subword_idxs = [get_subwords(wid) for wid in batch['txt']['word_ids']]
-        
+        subword_idxs = [self.get_subwords(wid) for wid in batch['txt']['word_ids']]
 
         for sample_idx,(sample_input_ids,sample_subword) in \
             enumerate(zip(batch['txt']['input_ids'],subword_idxs)):
@@ -268,7 +268,7 @@ class PretextProcessor:
 
     def span_mask(self, batch):
         """Masks contiguous spans of words up to the masking budget (mlm rate, e.g. 15%)
-           Samples length of span from 
+           Follows Joshi et al. "SpanBERT" paper.
 
         Args:
             batch ([type]): [description]
@@ -276,7 +276,10 @@ class PretextProcessor:
         Returns:
             [type]: [description]
         """
-        pass
+        # SpanBERT task is P(Wi | Ws-1, We+1, Pi ) 
+        # i.e. predict token Wi given the boundary words (of the span) and the position embedding
+
+        pass       
         # # Instantiate masked inputs
         # batch['txt']['masked_input_ids'] = batch['txt']['input_ids'].detach().clone()
         # # Set targets to -100 by default to ignore
@@ -284,9 +287,9 @@ class PretextProcessor:
 
         # for sample_idx,sample_input_ids in enumerate(batch['txt']['input_ids']):
             
-        #     # Sample lengths as following SpanBERT (Joshi et al 2020)
+        #     # Sample lengths as following SpanBERT
         #     # p: 0.2 -> mean span: 3.8
-        #     span_lengths = np.random.geometric(0.2,20)
+        #     span_lengths = np.random.geometric(0.2,20) 
         #     span_lengths = span_lengths[span_lengths<11]
 
         #     input_tokens = self.tok.convert_ids_to_tokens(sample_input_ids)
@@ -303,22 +306,58 @@ class PretextProcessor:
         #             cand_indexes[-1].append(i)
         #         else:
         #             cand_indexes.append([i])       
-              #TODO: Up to here
-        #     shuffled_idx = random.shuffle(cand_indexes)
-
+              
         #     num_to_predict = min(self.max_seq_len, max(1, int(round(sent_len * self.mlm_rate))))
+
         #     masked_lms = []
         #     covered_indexes = set()
+            
+        #     if len(masked_lms) >= num_to_predict:
+        #         break
 
-        #     for index_set in shuffled_idx:
-        #         if len(masked_lms) >= num_to_predict:
-        #             break
-        #         # If adding a whole-word mask would exceed the maximum number of
-        #         # predictions, then just skip this candidate.
-        #         if len(masked_lms) + len(index_set) > num_to_predict:
+        #     span_length = np.random.geometric(0.2,20) 
+        #     span_length = span_lengths[span_lengths<11] # limit the length
+        #     span_length = np.random.choice(span_length)
+
+        #     if len(masked_lms) + span_length > num_to_predict:
         #             continue
-        #         is_any_index_covered = False
-        #         for index in index_set:
+
+          # # TODO: Up to Here
+           # 
+           #  OLD:
+            # cand_spans = []
+            # for i,w in enumerate(cand_indexes):
+            #     if len(cand_spans)>1 and w[0]==cand_spans[-1][-1]+1:
+            #         if cand_spans[-1]
+            #         cand_spans[-1].append(w)
+            #     elif len(w)<=span_length:
+            #         cand_spans.append([w])
+                # else:
+                #     continue
+
+
+
+            # span_lengths = [l for i,l in enumerate(span_lengths) if
+            #              sum(span_lengths[:i+1]) <= num_to_predict ]
+            
+            # # Account for leftovers (optional).
+            # if (sum(span_lengths) < num_to_predict): 
+            #     span_lengths.append(num_to_predict - sum(span_lengths)) 
+
+
+
+            # masked_lms = []
+            # covered_indexes = set()
+
+            # for index_set in shuffled_idx:
+            #     if len(masked_lms) >= num_to_predict:
+            #         break
+            #     # If adding a whole-word mask would exceed the maximum number of
+            #     # predictions, then just skip this candidate.
+            #     if len(masked_lms) + len(index_set) > num_to_predict:
+            #         continue
+            #     is_any_index_covered = False
+            #     for index in index_set:
         #             if index in covered_indexes:
         #                 is_any_index_covered = True
         #                 break
