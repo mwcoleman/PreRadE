@@ -11,13 +11,14 @@ class PretextProcessor:
     
     def __init__(self, tokenizer, max_seq_len=20, 
                  mlm_rate=0.15, oovm_rate=0.40,
-                 mfr_rate=0.15,
+                 mfr_rate=0.15, span_rate=0.15,
                  itm_rate=0.5):
 
         self.mlm_rate = mlm_rate
         self.mfr_rate = mfr_rate
         self.itm_rate = itm_rate
         self.oovm_rate = oovm_rate
+        self.span_rate = span_rate
 
         self.tok = tokenizer
         self.max_seq_len = max_seq_len
@@ -70,7 +71,6 @@ class PretextProcessor:
         if return_word_ids:
             # Store the index of tokens in each sequence
             batch['txt']['word_ids'] = [[-1 if x is None else x for x in w] for w in [e.word_ids for e in encoded._encodings]]
-            # batch['txt']['word_ids'] = torch.tensor(word_ids, dtype=int, device=self.device)
 
         return batch
     
@@ -268,7 +268,7 @@ class PretextProcessor:
 
     def span_mask(self, batch):
         """Masks contiguous spans of words up to the masking budget (mlm rate, e.g. 15%)
-           Follows Joshi et al. "SpanBERT" paper.
+           Note: masking budget is in words, not tokens.
 
         Args:
             batch ([type]): [description]
@@ -276,105 +276,66 @@ class PretextProcessor:
         Returns:
             [type]: [description]
         """
+        
         # SpanBERT task is P(Wi | Ws-1, We+1, Pi ) 
         # i.e. predict token Wi given the boundary words (of the span) and the position embedding
-
-        pass       
-        # # Instantiate masked inputs
-        # batch['txt']['masked_input_ids'] = batch['txt']['input_ids'].detach().clone()
-        # # Set targets to -100 by default to ignore
-        # labels = -100 * torch.ones_like(batch['txt']['input_ids'], device=self.device)        
-
-        # for sample_idx,sample_input_ids in enumerate(batch['txt']['input_ids']):
-            
-        #     # Sample lengths as following SpanBERT
-        #     # p: 0.2 -> mean span: 3.8
-        #     span_lengths = np.random.geometric(0.2,20) 
-        #     span_lengths = span_lengths[span_lengths<11]
-
-        #     input_tokens = self.tok.convert_ids_to_tokens(sample_input_ids)
-
-        #     cand_indexes = []
-        #     for (i, token) in enumerate(input_tokens):
-        #         sent_len = 0
-        #         if token == "[PAD]" or token == "[SEP]":
-        #             sent_len = i
-        #             break
-        #         if token == "[CLS]":
-        #             continue
-        #         if len(cand_indexes) >= 1 and token.startswith("##"):
-        #             cand_indexes[-1].append(i)
-        #         else:
-        #             cand_indexes.append([i])       
               
-        #     num_to_predict = min(self.max_seq_len, max(1, int(round(sent_len * self.mlm_rate))))
+        # Instantiate masked inputs
+        batch['txt']['masked_input_ids'] = torch.full_like(batch['txt']['input_ids'], 0, device=self.device)
 
-        #     masked_lms = []
-        #     covered_indexes = set()
-            
-        #     if len(masked_lms) >= num_to_predict:
-        #         break
+        # Set targets to -100 by default to ignore
+        labels = -100 * torch.ones_like(batch['txt']['input_ids'], device=self.device)        
 
-        #     span_length = np.random.geometric(0.2,20) 
-        #     span_length = span_lengths[span_lengths<11] # limit the length
-        #     span_length = np.random.choice(span_length)
+        span_masks = []
+        for sample_idx,sample_input_ids in enumerate(batch['txt']['input_ids']):
+                    
+            # Sample lengths as following SpanBERT
+            # p: 0.2 -> mean span: 3.8
+            span_lengths = np.random.geometric(0.2,20) 
+            span_lengths = span_lengths[span_lengths<11]
+            span_lengths = span_lengths[span_lengths>1]
+            span_lengths = [s for i,s in enumerate(span_lengths) if sum(span_lengths[:i+1])<=num_to_predict]
+            input_tokens = self.tok.convert_ids_to_tokens(sample_input_ids)
 
-        #     if len(masked_lms) + span_length > num_to_predict:
-        #             continue
+            cand_indexes = []
+            for (i, token) in enumerate(input_tokens):
+                sent_len = 0
+                if token == "[PAD]" or token == "[SEP]":
+                    sent_len = i
+                    break
+                if token == "[CLS]":
+                    continue
+                if len(cand_indexes) >= 1 and token.startswith("##"):
+                    cand_indexes[-1].append(i)
+                else:
+                    cand_indexes.append([i])       
 
-          # # TODO: Up to Here
-           # 
-           #  OLD:
-            # cand_spans = []
-            # for i,w in enumerate(cand_indexes):
-            #     if len(cand_spans)>1 and w[0]==cand_spans[-1][-1]+1:
-            #         if cand_spans[-1]
-            #         cand_spans[-1].append(w)
-            #     elif len(w)<=span_length:
-            #         cand_spans.append([w])
-                # else:
-                #     continue
+            num_to_predict = min(self.max_seq_len, max(1, int(round(sent_len * self.mlm_rate))))
 
+            cand_split_by_spans = [list(a) for a in np.array_split(np.array(cand_indexes, dtype=object),
+                                                                   len(span_lengths))]    
+            # Remember to account for boundaries and no overlap
+            start_idxs = [random.choice(a[1:-(sl)])[0] for a,sl in zip(cand_split_by_spans, span_lengths)]
 
-
-            # span_lengths = [l for i,l in enumerate(span_lengths) if
-            #              sum(span_lengths[:i+1]) <= num_to_predict ]
-            
-            # # Account for leftovers (optional).
-            # if (sum(span_lengths) < num_to_predict): 
-            #     span_lengths.append(num_to_predict - sum(span_lengths)) 
-
-
-
-            # masked_lms = []
             # covered_indexes = set()
 
-            # for index_set in shuffled_idx:
-            #     if len(masked_lms) >= num_to_predict:
-            #         break
-            #     # If adding a whole-word mask would exceed the maximum number of
-            #     # predictions, then just skip this candidate.
-            #     if len(masked_lms) + len(index_set) > num_to_predict:
-            #         continue
-            #     is_any_index_covered = False
-            #     for index in index_set:
-        #             if index in covered_indexes:
-        #                 is_any_index_covered = True
-        #                 break
-        #         if is_any_index_covered:
-        #             continue
-        #         for index in index_set:
-        #             covered_indexes.add(index)
-        #             masked_lms.append(index)
-
-        #     assert len(covered_indexes) == len(masked_lms)
-        #     covered_indexes = list(covered_indexes)
-        #     # mask_labels = [1 if i in covered_indexes else 0 for i in range(len(input_tokens))]
-
-        #     batch['txt']['masked_input_ids'][sample_idx,covered_indexes] = torch.full((len(covered_indexes),),103, device=self.device)
-        #     labels[sample_idx,covered_indexes] = sample_input_ids[covered_indexes]  
+            ww_idxs = [e[0] for e in cand_indexes]
+            pair_targets = []
+            for span,start in zip(span_lengths,start_idxs):
+                # Return nearest word-boundary position given the span
+                end = min(ww_idxs, key=lambda x: abs(start+span-x))-1
+                pair_targets.append([start-1,end+1])
+                pair_targets[-1].append([idx for idx in range(start,end+1)])
+                # Pad to max span length
+                pair_targets[-1][-1] += [0 for i in range(10-len(pair_targets[-1][-1]))]
+                # covered_indexes = covered_indexes.union([idx for idx in range(start,end)])
+            span_masks.append(pair_targets)
+            # batch['txt']['masked_input_ids'][sample_idx,pair_targets] = torch.full((len(covered_indexes),),103, device=self.device)
+            # labels[sample_idx,covered_indexes] = sample_input_ids[covered_indexes]  
+        batch['txt']['span_masks'] = torch.tensor(span_masks, device=self.device)        
         # batch['txt']['masked_labels'] = labels.to(self.device)
-        # return batch
+        return batch
+        
 
 
     def itm_sampling(self, batch):

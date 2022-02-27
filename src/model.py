@@ -15,6 +15,21 @@ from transformers.models.visual_bert.modeling_visual_bert import VisualBertLMPre
 
 from src.tasks import PretextProcessor
 
+class MLPWithLayerNorm(nn.Module):
+    # Taken from SpanBERT / Fairseq
+    def __init__(self, config, input_size):
+        super(MLPWithLayerNorm, self).__init__()
+        self.config = config
+        self.linear1 = nn.Linear(input_size, config.hidden_size)
+        self.non_lin1 = GELU()
+        self.layer_norm1 = nn.LayerNorm(config.hidden_size, eps=1e-12)
+        self.linear2 = nn.Linear(config.hidden_size, config.hidden_size)
+        self.non_lin2 = GELU()
+        self.layer_norm2 = nn.LayerNorm(config.hidden_size, eps=1e-12)
+
+    def forward(self, hidden):
+        return self.layer_norm2(self.non_lin2(self.linear2(self.layer_norm1(self.non_lin1(self.linear1(hidden))))))
+
 
 class MMRad(pl.LightningModule):
     """Base framework class, e.g. MMRadForPretraining and 
@@ -47,7 +62,7 @@ class MMRad(pl.LightningModule):
 
         self.train_size = train_size
         
-        if self.hparams.load_model is None:
+        if self.hparams.load_model == "scratch":
             print(f"Initialising Tx encoder from scratch\n")
             self.model = VisualBertModel(self.config)
             self.model.apply(self.init_weights)
@@ -177,10 +192,11 @@ class MMRadForPretraining(MMRad):
     def __init__(self, args, train_size, tokenizer='bert-base-uncased'):
         super().__init__(args, train_size, tokenizer=tokenizer)
 
-        self.__init_pretraining_heads()
         self.task_step = {'mlm':self.mlm_step, 'mfr':self.mfr_step, 'itm':self.itm_step,
-                          'wwm':self.wwm_step, 'oovm':self.oovm_step}
+                          'wwm':self.wwm_step, 'oovm':self.oovm_step, 'sm':self.span_step}
         self.hparams.tasks = self.hparams.tasks.split(',')
+        self.__init_pretraining_heads()
+
 
     def __init_pretraining_heads(self):
         """Initialise the task-specfic heads required for pretraining (e.g. MLM)
@@ -192,6 +208,21 @@ class MMRadForPretraining(MMRad):
                 GELU(),
                 nn.LayerNorm(self.visual_features_dim, eps=1e-12)
                 )
+        if "sb" in self.hparams.tasks:
+            # Initialise 2-pass feed forward network for spanbert objective
+            self.span_head = MLPWithLayerNorm(config=self.config, 
+                                              input_size=3*self.config.hidden_size)
+            
+            #
+            #  self.span_head = nn.Sequential(
+            #     nn.Linear(self.config.hidden_size, self.config.hidden_size),
+            #     GELU(),
+            #     nn.LayerNorm(self.config.hidden_size, eps=1e-12),
+            #     nn.Linear(self.config.hidden_size, self.config.hidden_size),
+            #     GELU(),
+            #     nn.LayerNorm(self.config.hidden_size, eps=1e-12),
+            # )
+            self.span_head.apply(self.init_weights)
         
         for head in (self.text_prediction_head, 
                      self.seq_relationship_head, 
@@ -212,7 +243,15 @@ class MMRadForPretraining(MMRad):
         batch = self.pp.mask_oov_word(batch)
         return self.lm_step(batch, batch_idx)
 
-    def lm_step(self, batch, batch_idx):
+    def span_step(self, batch):
+        batch = self.pp.mask_span(batch)
+        sequence_output, _ = self.lm_step(batch, return_encoder_output=True)
+        
+
+
+
+
+    def lm_step(self, batch, batch_idx, return_encoder_output=False):
         """Computes forward pass and loss for all language modelling (text) tasks
            (MLM, WWM, Span-MLM, ...)
 
@@ -224,16 +263,12 @@ class MMRadForPretraining(MMRad):
         Returns:
             (dict): Dictionary containing loss and accuracy for the batch.
         """
-
-        # TODO: Fix this up so it can be called in shared step (see mfr_step)
         batch = self.pp.img_vectorize(batch, model=self)     
 
         txt_labels = batch['txt']['masked_labels']
-        #Dummy visual labels
+        #Dummy visual labels (ignored in loss)
         img_labels = torch.full((txt_labels.size()[0],36),-100, device=self.device)
         
-        # labels = torch.hstack((txt_labels,img_labels))
-
         outputs = self(
             input_ids=batch['txt']['masked_input_ids'],
             attention_mask=batch['txt']['att_mask'],
@@ -250,8 +285,11 @@ class MMRadForPretraining(MMRad):
             return_dict=True,
         )
 
-        # Most code borrowed from HF visualbertforpretraining
         sequence_output, pooled_output = outputs[:2]
+
+        if return_encoder_output:
+            return sequence_output, pooled_output
+
         txt_sequence, img_sequence = torch.split(sequence_output, [txt_labels.shape[1], img_labels.shape[1]], dim=1)
 
         text_logits = self.text_prediction_head(txt_sequence)
