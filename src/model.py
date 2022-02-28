@@ -30,6 +30,41 @@ class MLPWithLayerNorm(nn.Module):
     def forward(self, hidden):
         return self.layer_norm2(self.non_lin2(self.linear2(self.layer_norm1(self.non_lin1(self.linear1(hidden))))))
 
+class BertPairTargetPredictionHead(nn.Module):
+    def __init__(self, config, bert_model_embedding_weights, max_targets=10, position_embedding_size=200):
+        super(BertPairTargetPredictionHead, self).__init__()
+        self.position_embeddings = nn.Embedding(max_targets, position_embedding_size)
+        self.mlp_layer_norm = MLPWithLayerNorm(config, config.hidden_size * 2 + position_embedding_size)
+        # The output weights are the same as the input embeddings, but there is
+        # an output-only bias for each token.
+        self.decoder = nn.Linear(bert_model_embedding_weights.size(1),
+                                 bert_model_embedding_weights.size(0),
+                                 bias=False)
+        self.decoder.weight = bert_model_embedding_weights
+        self.bias = nn.Parameter(torch.zeros(bert_model_embedding_weights.size(0)))
+        self.max_targets = max_targets
+
+    def forward(self, hidden_states, pairs):
+        bs, num_pairs, _ = pairs.size()
+        bs, seq_len, dim = hidden_states.size()
+        # pair indices: (bs, num_pairs)
+        left, right = pairs[:,:, 0], pairs[:, :, 1]
+        # (bs, num_pairs, dim)
+
+        # Get tok for left boundaries. left_hidden.size(): (bs,#spans,dim) 
+        left_hidden = torch.gather(hidden_states, 1, left.unsqueeze(2).repeat(1, 1, dim))
+        # pair states: bs * num_pairs, max_targets, dim
+        left_hidden = left_hidden.contiguous().view(bs * num_pairs, dim).unsqueeze(1).repeat(1, self.max_targets, 1)
+        right_hidden = torch.gather(hidden_states, 1, right.unsqueeze(2).repeat(1, 1, dim))
+        # bs * num_pairs, max_targets, dim
+        right_hidden = right_hidden.contiguous().view(bs * num_pairs, dim).unsqueeze(1).repeat(1, self.max_targets, 1)
+
+        # (max_targets, dim)
+        position_embeddings = self.position_embeddings.weight
+        hidden_states = self.mlp_layer_norm(torch.cat((left_hidden, right_hidden, position_embeddings.unsqueeze(0).repeat(bs * num_pairs, 1, 1)), -1))
+        # target scores : bs * num_pairs, max_targets, vocab_size
+        target_scores = self.decoder(hidden_states) + self.bias
+        return target_scores
 
 class MMRad(pl.LightningModule):
     """Base framework class, e.g. MMRadForPretraining and 
@@ -193,7 +228,7 @@ class MMRadForPretraining(MMRad):
         super().__init__(args, train_size, tokenizer=tokenizer)
 
         self.task_step = {'mlm':self.mlm_step, 'mfr':self.mfr_step, 'itm':self.itm_step,
-                          'wwm':self.wwm_step, 'oovm':self.oovm_step, 'sm':self.span_step}
+                          'wwm':self.wwm_step, 'oovm':self.oovm_step, 'sbm':self.span_step}
         self.hparams.tasks = self.hparams.tasks.split(',')
         self.__init_pretraining_heads()
 
@@ -208,20 +243,13 @@ class MMRadForPretraining(MMRad):
                 GELU(),
                 nn.LayerNorm(self.visual_features_dim, eps=1e-12)
                 )
-        if "sb" in self.hparams.tasks:
-            # Initialise 2-pass feed forward network for spanbert objective
-            self.span_head = MLPWithLayerNorm(config=self.config, 
-                                              input_size=3*self.config.hidden_size)
-            
-            #
-            #  self.span_head = nn.Sequential(
-            #     nn.Linear(self.config.hidden_size, self.config.hidden_size),
-            #     GELU(),
-            #     nn.LayerNorm(self.config.hidden_size, eps=1e-12),
-            #     nn.Linear(self.config.hidden_size, self.config.hidden_size),
-            #     GELU(),
-            #     nn.LayerNorm(self.config.hidden_size, eps=1e-12),
-            # )
+        if "sbm" in self.hparams.tasks:
+            # Initialise spanbert objective head
+            self.span_head = BertPairTargetPredictionHead(
+                                config=self.config, 
+                                bert_model_embedding_weights=self.model.embeddings.word_embeddings.weight,
+                                max_targets=10
+                                )
             self.span_head.apply(self.init_weights)
         
         for head in (self.text_prediction_head, 
@@ -243,17 +271,35 @@ class MMRadForPretraining(MMRad):
         batch = self.pp.mask_oov_word(batch)
         return self.lm_step(batch, batch_idx)
 
-    def span_step(self, batch):
+    def span_step(self, batch, batch_idx):
         batch = self.pp.mask_span(batch)
-        sequence_output, _ = self.lm_step(batch, return_encoder_output=True)
-        
+        pairs = batch['txt']['span_pairs']
+        # 
+        sequence_output, _ = self.lm_step(batch, batch_idx, return_encoder_output=True)
 
+        txt_sequence, _ = torch.split(sequence_output, 
+                                                [batch['txt']['input_ids'].shape[1], batch['img']['features'].shape[1]],
+                                                dim=1)
+        
+        # logits: (bs * num_pairs, max_targets, dim)
+        text_logits = self.span_head(txt_sequence,pairs)
+        txt_labels = batch['txt']['masked_labels']
+        # Need labels to be bs*num_pairs, e.g. each elem in batch is a span.
+
+        text_preds = text_logits[(txt_labels > 0), :].argmax(1)
+        filtered_labels = txt_labels[(txt_labels > 0)]
+
+        loss_fct = CrossEntropyLoss()
+        # total_loss = loss_fct(text_logits.contiguous().view(-1, self.config.vocab_size), labels.view(-1))
+        loss = loss_fct(text_logits.view(-1, self.config.vocab_size), txt_labels.view(-1))
+        acc = (text_preds == filtered_labels).type(torch.float).mean()*100
+        return {'loss':loss, 'acc':acc}
 
 
 
     def lm_step(self, batch, batch_idx, return_encoder_output=False):
         """Computes forward pass and loss for all language modelling (text) tasks
-           (MLM, WWM, Span-MLM, ...)
+           (MLM, WWM, oovm, ...)
 
         Args:
             batch (dict)
