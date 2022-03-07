@@ -302,12 +302,15 @@ class PretextProcessor:
         pairs = torch.zeros((batch_size, num_spans, 2), device=self.device, dtype=int)
 
         for sample_idx,sample_input_ids in enumerate(batch['txt']['input_ids']):
-                    
+
+
             input_tokens = self.tok.convert_ids_to_tokens(sample_input_ids)
 
             cand_indexes = []
+            sent_len=0
             for (i, token) in enumerate(input_tokens):
                 if token == "[PAD]" or token == "[SEP]":
+                    sent_len=i
                     break
                 if token == "[CLS]":
                     continue
@@ -315,44 +318,43 @@ class PretextProcessor:
                     cand_indexes[-1].append(i)
                 else:
                     cand_indexes.append([i])
-
-            # # Old = Get start position of spans (inner boundary)
-            # start_idxs = cand_indexes[:]
-            # random.shuffle(start_idxs)
-            # start_idxs = [cand[0] for cand in start_idxs[:num_spans]]
+            
+            if (len(cand_indexes) < num_spans*2+1):# or (sent_len<((num_spans*2)+1)):
+                # |_||_||_||_|
+                # Skip masking this example, it's too short
+                continue
 
             # distributing spans evenly across sequence
             cand_split_by_spans = [list(a) for a in np.array_split(np.array(cand_indexes, dtype=object),
                                                                     len(span_lengths))]   
-            # sent_len = len([t for t in sample_input_ids if (t > 0)])-2
             
             # adjust any span lengths that > sequence split
-            # TODO: Handle this better
-            span_lengths = [min(span,len(split)-2) for span,split in zip(span_lengths, cand_split_by_spans)]
-            if any(i < 1 for i in span_lengths):
-                sent_len = len([t for t in sample_input_ids if (t > 0)])-2
-                span_lengths = num_spans*[int(round(0.25*sent_len))]
-                start_idxs = num_spans*[random.choice(cand_indexes[:-span_lengths[0]])[0]]
-            # Remember to account for boundaries and no overlap
-            else:
-                start_idxs = [random.choice(a[1:-(sl)])[0] for a,sl in zip(cand_split_by_spans, span_lengths)]
-
+            adj_span_lengths = [min(span,(split[-1][-1]-split[0][0])-2) for span,split in zip(span_lengths, cand_split_by_spans)]
+            
+            # Adjust first split start position account for CLS
+            cs_expanded = [range(max(2,e[0][0]), e[-1][-1]+1) for e in cand_split_by_spans]
+            
+            # Choose any val in range of sp
+            start_idxs = [random.choice(range(split[0],split[-1]-(sl-1))) for split,sl in zip(cs_expanded, adj_span_lengths)]
 
             ww_idxs = [e[0] for e in cand_indexes]
             
             lefts, rights = [], []
-            for span,start in zip(span_lengths,start_idxs):
-                # Find nearest whole word boundary w/out exceeding span length
-                end = min([x for x in ww_idxs if x < start+span],
-                           key=lambda x: abs(start+span-x))-1
+            for span,start in zip(adj_span_lengths,start_idxs):
+                # Find nearest whole word boundary w/out exceeding span length and 
+                adj_start = min([x for x in ww_idxs if (x <= start)],
+                           key=lambda x: abs(start-x))
+                
+                adj_end = min([x for x in ww_idxs if x < adj_start+span],
+                           key=lambda x: abs(adj_start+span-x))
 
                 # start,end are inner boundaries span boundaries
-                lefts.append(start-1)
-                rights.append(end+1)
-                masks = [i for i in range(start, end+1)]
-                adjusted_span = len(masks)
+                lefts.append(adj_start-1)
+                rights.append(adj_end+1)
+                masks = [i for i in range(start, adj_end+1)]
+                adj_span = len(masks)
                 # Labels need shape (bs*num_spans, seq_len)
-                labels[(sample_idx*num_spans)+len(lefts)-1, 0:adjusted_span] = sample_input_ids[masks]
+                labels[(sample_idx*num_spans)+len(lefts)-1, 0:adj_span] = sample_input_ids[masks]
 
             lefts, rights = torch.tensor(lefts, device=self.device, dtype=int), torch.tensor(rights, device=self.device, dtype=int)
             
