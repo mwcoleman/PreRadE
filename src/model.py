@@ -5,6 +5,7 @@ from torch.nn import CrossEntropyLoss, MSELoss, GELU, BCELoss
 import pytorch_lightning as pl
 
 from transformers import (
+    BertTokenizer,
     BertTokenizerFast, 
     VisualBertModel, 
     VisualBertConfig, 
@@ -156,8 +157,8 @@ class MMRad(pl.LightningModule):
             tok (str): either path to local tokeniser or 
             HF compatible model e.g. 'bert-base-uncased'
         """
-        if os.path.exists('./'+tok+'/'):
-            tok_path = './'+tok+'/'
+        if os.path.exists('./huggingface/'+tok+'/'):
+            tok_path = './huggingface/'+tok+'/'
             print("Local Tokenizer exists")
         else:
             tok_path = tok
@@ -165,6 +166,7 @@ class MMRad(pl.LightningModule):
             tok_path,
             do_lower_case=True
         )
+        self.tokenizer.save_pretrained('./huggingface/'+tok_path)
         print(f"Using tokenizer: {self.hparams.tokenizer}")
 
     def init_weights(self, module):

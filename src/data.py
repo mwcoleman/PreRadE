@@ -138,8 +138,7 @@ class OpenIDataset(Dataset):
         
         # Labelset is different to MIMIC, filter to those present in both.
         self.labelset = ['Atelectasis','Cardiomegaly', 'Consolidation', 
-                         'Edema', 'Pneumonia', 'Pneumothorax', 
-                         'Pleural Effusion']
+                         'Edema', 'Pneumonia', 'Pneumothorax', 'Pleural Effusion']
         if self.binary_task:
             # TODO: Use txt_data above not separate file
             self.label_data = (self.label_data.sum(axis=1)>0).astype(int)

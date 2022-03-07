@@ -44,21 +44,35 @@ class MetricsCallback(pl.Callback):
 
        (Will probably break on distributed GPU training..)
     """
-    def __init__(self,n_classes=13):
+    def __init__(self, train_size, valid_size, n_classes=13):
         super().__init__()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.auroc = torchmetrics.AUROC(num_classes=n_classes,
                                         average=None)
+        self.calc_avg_auc = torchmetrics.AUROC(num_classes=n_classes,
+                                        average='macro')
+        self.calc_wavg_auc = torchmetrics.AUROC(num_classes=n_classes,
+                                        average='weighted')
         self.statscores = torchmetrics.StatScores(reduce='macro',
-                                                  num_classes=n_classes,
-                                                    )
+                                                  num_classes=n_classes)
         self.auroc.to(self.device)
+        self.calc_avg_auc.to(self.device)
+        self.calc_wavg_auc.to(self.device)
         self.statscores.to(self.device)
 
         self.result_auc = torch.zeros((n_classes,), device=self.device)
         self.n_classes = n_classes
+
+        self.train_size = train_size
+        self.valid_size = valid_size
+
+    #     self.train_epochs = 0
     
+    # def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    #     self.train_epochs += 1
+        
+
     def on_validation_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs, batch, batch_idx,_) -> None:
         
         # Accumulate preds/labels across batches
@@ -77,6 +91,9 @@ class MetricsCallback(pl.Callback):
         # Compute & update AUC for the others; carry over old vals (0) 
         self.result_auc[mask] = self.auroc(self.val_preds[:,mask], self.val_labels[:,mask].type(torch.int)).to(self.device)
 
+        # avg_AUC = self.calc_avg_auc(self.val_preds[:,mask], self.val_labels[:,mask].type(torch.int)).to(self.device)
+        # wAvg_AUC = self.calc_wavg_auc(self.val_preds[:,mask], self.val_labels[:,mask].type(torch.int)).to(self.device)
+        
         # Compute stat scores (TP,...) over epoch
         # StatScores returns tensor of shape (num_classes, 5)
         # When macro is used. last dim is [TP,FP,TN,FN,TP+FN]
@@ -92,6 +109,7 @@ class MetricsCallback(pl.Callback):
                        'SS_'+name+'_FN':stats[3],
                        'SS_'+name+'_SUP':stats[4]}
             self.log_dict(results)
+        # self.log_dict({'VAL_Avg_AUC':avg_AUC, 'VAL_wAvg_AUC':wAvg_AUC})
 
     def on_test_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs, batch, batch_idx,_) -> None:
         
@@ -112,41 +130,42 @@ class MetricsCallback(pl.Callback):
         # Compute & update AUC for the others; carry over old vals (0) 
         # auroc returns (num_classes,)
         self.result_auc[mask] = self.auroc(self.test_preds[:,mask], self.test_labels[:,mask].type(torch.int)).to(self.device)
-
+        
         # Compute stat scores (TP,...) over epoch
         # StatScores returns tensor of shape (num_classes, 5)
         # When macro is used. last dim is [TP,FP,TN,FN,TP+FN]
         statscores = self.statscores(self.test_preds, self.test_labels.type(torch.int)).type(torch.float)
-        num_total= torch.sum(statscores,dim=0)[4]
+        # num_tot_support= torch.sum(statscores,dim=0)[4]
+        num_examples = self.test_preds.size()[0]
 
-        supports = statscores.cpu().numpy()[:,4]
-        prevs = supports/num_total.cpu().numpy()
+        avg_AUC = self.calc_avg_auc(self.test_preds[:,mask], self.test_labels[:,mask].type(torch.int)).to(self.device)
+        wAvg_AUC = self.calc_wavg_auc(self.test_preds[:,mask], self.test_labels[:,mask].type(torch.int)).to(self.device)
 
-        AUC_avg = self.result_auc.mean()
-        wAUC_avg = np.sum((prevs*self.result_auc.cpu().numpy()))
 
         # Create a wandb table
-        columns=['Label','AUC','# Cases','% Prev', 'TP', 'FP', 'TN', 'FN']
+        columns=['Label','AUC','# Cases','% Prev (all)', 'TP', 'FP', 'TN', 'FN']
         table_data = []
         for name,score,stats in zip(pl_module.labelset, self.result_auc, torch.tensor_split(statscores,self.n_classes,dim=0)):
             stats = stats.squeeze(0)
             s = {k:v for k,v in zip(['TP','FP','TN','FN','SUP'],stats)}
-            prev = np.round((100*s['SUP']/num_total).cpu().numpy(),decimals=2)
-            table_data.append([name,score,s['SUP'],prev ,s['TP'],s['FP'],s['TN'],s['FN']])
+            # prev_pos = np.round((100*s['SUP']/num_tot_support).cpu().numpy(),decimals=2)
+            prev_all = np.round((100*s['SUP']/num_examples).cpu().numpy(),decimals=2)
+            table_data.append([name,score,s['SUP'],prev_all,s['TP'],s['FP'],s['TN'],s['FN']])
 
-        self.log_dict({'Avg_AUC':AUC_avg, 'wAvg_AUC':wAUC_avg})
-        pl_module.logger.log_table(key="tr_table", columns=columns, data=table_data)
+        avg_columns = ['Type', 'Value']
+        avg_table = [['Avg', avg_AUC],
+                     ['wAvg', wAvg_AUC]]
 
-        # Also create a table logging the support of Val dataset for ease
-        val_statscores = self.statscores(self.val_preds, self.val_labels.type(torch.int)).type(torch.float)
-        val_supports = val_statscores.cpu().numpy()[:,4]
-        val_prevs = supports/num_total.cpu().numpy()
 
-        # TODO: Fix this 'ValueError: This table expects 2 columns: ['# Cases', 'Prev'], found 7'
+        data_table = [["Train (FT)", self.train_size],
+                      ["Val (FT)", self.valid_size],
+                      ["Test", num_examples]]
 
-        # pl_module.logger.log_table(key='val_support',
-        #                            columns=['# Cases','Prev'],
-        #                            data=[val_supports,val_prevs])
+        data_columns = ['Split', 'Size']
 
-        # Log a precision-recall chart
-        # wandb.log({"pr": wandb.plot.pr_curve(self.test_labels, self.test_preds)})
+        self.log_dict({'Avg_AUC':avg_AUC, 'wAvg_AUC':wAvg_AUC})
+        pl_module.logger.log_table(key="labels_table", columns=columns, data=table_data)
+        pl_module.logger.log_table(key="avg_table", columns=avg_columns, data=avg_table)
+        pl_module.logger.log_table(key="data_table", columns=data_columns, data=data_table)
+
+      
