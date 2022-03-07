@@ -1,5 +1,5 @@
 # mmRad
-This repository contains code and models for my Master of AI minor thesis component: Self-Supervised learning for Radiological Images and Text: An Evaluation of Pre-text tasks\\
+This repository contains code and models for my Master of AI minor thesis component: Self-Supervised learning for Radiological Images and Text: An Evaluation of Pre-text tasks  
 
 Note: codebase is a work in progress and will be updated ongoing (with potential for things to break). 
 
@@ -24,21 +24,21 @@ In a nutshell, this project aims to evaluate (model-agnostic) a range of common 
 ## Important files
 
 
-`pretrain.py`: Pretraining script, will require modification for logging & model/checkpoint load/save paths\\
-`data_paths.json`: File paths to datasets for pretraining, fine tuning and evaluating. Edit these with your processed data locations\\
-`src/data.py`: Contains the lightning DataModules for loading the text and visual features (from preprocessing steps below)\\
-`src/model.py`: Model code including pretraining and finetuning frameworks\\
-`src/tasks.py`: All pretext task code implementations contained within this file\\
-`src/utils.py`: Misc utils such as callbacks, logging, loading .tsv\\
-`src/parameters.py`: argparse arguments holds default values\\
+`pretrain.py`: Pretraining script, will require modification for logging & model/checkpoint load/save paths  
+`data_paths.json`: File paths to datasets for pretraining, fine tuning and evaluating. Edit these with your processed data locations  
+`src/data.py`: Contains the lightning DataModules for loading the text and visual features (from preprocessing steps below)  
+`src/model.py`: Model code including pretraining and finetuning frameworks  
+`src/tasks.py`: All pretext task code implementations contained within this file  
+`src/utils.py`: Misc utils such as callbacks, logging, loading .tsv  
+`src/parameters.py`: argparse arguments holds default values  
 
-`preproc/extract_features.py`: Script to extract visual features from image data using Detectron2 mask-rcnn pretrained model\\
-`preproc/pp_utils.py`: Class and methods to implement mask-rcnn pretrained model for above script, with partial outputs for features\\
-`preproc/stratified_split.ipynb`: Preprocessing notebook to generate the report data in required format\\
+`preproc/extract_features.py`: Script to extract visual features from image data using Detectron2 mask-rcnn pretrained model  
+`preproc/pp_utils.py`: Class and methods to implement mask-rcnn pretrained model for above script, with partial outputs for features  
+`preproc/stratified_split.ipynb`: Preprocessing notebook to generate the report data in required format  
 
 ## Preprocessing
 
-Refer to the provided a notebook for preprocess MIMIC-CXR reports and labels: `preproc/stratified_split.ipynb`
+Refer to the provided a notebook for preprocess MIMIC-CXR reports and labels: `preproc/stratified_split.ipynb`  
 
 To extract visual features from MIMIC-CXR-JPG with Detectron2 suitable for inputs to the model, first edit the `ROOT` value in `./preproc/extract_features.py`, then to run:
 ```python extract_features.py \
@@ -52,8 +52,8 @@ For extracting features from the OpenI dataset, first follow the preprocessing g
 
 ## Required mods
 
-- customise your own logging either through wandb or another/none.
-- Load/save paths to checkpoint/model files
+- customise your own logging either through wandb or another/none.  
+- Load/save paths to checkpoint/model files  
 
 By default the pretraining saves checkpoints in `[data_root]/checkpoints/[run_name]/pt_framework/` and models in `[data_root]/checkpoints/[run_name]/encoder/`
 
