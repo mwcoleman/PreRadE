@@ -1,6 +1,7 @@
 # mmRad
-This repository contains code and models for my Master of AI minor thesis component: Self-Supervised learning for Radiological Images and Text: An Evaluation of Pre-text tasks
-Note: codebase is a work in progress and will be updated ongoing.
+This repository contains code and models for my Master of AI minor thesis component: Self-Supervised learning for Radiological Images and Text: An Evaluation of Pre-text tasks\\
+
+Note: codebase is a work in progress and will be updated ongoing (with potential for things to break). 
 
 ## Requirements
 See env.yml
@@ -23,17 +24,17 @@ In a nutshell, this project aims to evaluate (model-agnostic) a range of common 
 ## Important files
 
 
-`pretrain.py`: Pretraining script, will require modification for logging & model/checkpoint load/save paths
-`data_paths.json`: File paths to datasets for pretraining, fine tuning and evaluating. Edit these with your processed data locations
-`src/data.py`: Contains the lightning DataModules for loading the text and visual features (from preprocessing steps below)
-`src/model.py`: Model code including pretraining and finetuning frameworks
-`src/tasks.py`: All pretext task code implementations contained within this file
-`src/utils.py`: Misc utils such as callbacks, logging, loading .tsv
-`src/parameters.py`: argparse arguments holds default values
+`pretrain.py`: Pretraining script, will require modification for logging & model/checkpoint load/save paths\\
+`data_paths.json`: File paths to datasets for pretraining, fine tuning and evaluating. Edit these with your processed data locations\\
+`src/data.py`: Contains the lightning DataModules for loading the text and visual features (from preprocessing steps below)\\
+`src/model.py`: Model code including pretraining and finetuning frameworks\\
+`src/tasks.py`: All pretext task code implementations contained within this file\\
+`src/utils.py`: Misc utils such as callbacks, logging, loading .tsv\\
+`src/parameters.py`: argparse arguments holds default values\\
 
-`preproc/extract_features.py`: Script to extract visual features from image data using Detectron2 mask-rcnn pretrained model
-`preproc/pp_utils.py`: Class and methods to implement mask-rcnn pretrained model for above script, with partial outputs for features
-`preproc/stratified_split.ipynb`: Preprocessing notebook to generate the report data in required format
+`preproc/extract_features.py`: Script to extract visual features from image data using Detectron2 mask-rcnn pretrained model\\
+`preproc/pp_utils.py`: Class and methods to implement mask-rcnn pretrained model for above script, with partial outputs for features\\
+`preproc/stratified_split.ipynb`: Preprocessing notebook to generate the report data in required format\\
 
 ## Preprocessing
 
