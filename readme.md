@@ -91,7 +91,7 @@ To skip fine tuning and evaluate a saved model:
 
 
 ## License
-mmRad is CC-BY-NC 4.0.
+mmRad is MIT licensed.
 
 ## Contact
 If you have any questions, please contact Matthew Coleman `<mcol0029@student.monash.edu>` or create a Github issue.
