@@ -1,5 +1,5 @@
 # mmRad
-This repository contains code and models for my Master of AI minor thesis component: Self-Supervised learning for Radiological Images and Text: An Evaluation of Pre-text tasks  
+This repository contains code and models for my minor thesis: Self-Supervised learning for Radiological Images and Text: An Evaluation of Pre-text tasks  
 
 Note: codebase is a work in progress and will be updated ongoing (with potential for things to break). 
 
@@ -7,7 +7,7 @@ Note: codebase is a work in progress and will be updated ongoing (with potential
 See env.yml
 
 ## Background
-In a nutshell, this project aims to evaluate (model-agnostic) a range of common pretraining tasks used in current multimodal settings. 
+In a nutshell, this project aims to evaluate (model-agnostic) a range of common pretraining tasks used in current multimodal settings, and additionally conduct a preliminary investigation into novel methods.
 
 ## Implementation details:
 - Pytorch lightning used as the experiment framework
