@@ -90,6 +90,16 @@ To skip fine tuning and evaluate a saved model:
 ```
 
 
+## Future Work
+
+### Tasks
+- Introduce pseudo-label task using offline cross-modal clustering
+- Implement ELECTRA-style GAN corruption & discrimination task, using the simpler [uniform sampling method](arxiv.org/abs/2104.09694v1)
+- Implement entity-level masking with word list generation
+
+### Ablation studies
+- Assess the robustness of the learned representations as the model is compressed through pruning (lottery ticket)
+
 ## License
 mmRad is MIT licensed.
 
