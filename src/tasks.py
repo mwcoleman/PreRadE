@@ -142,13 +142,13 @@ class PretextProcessor:
         returns: batch w/ masked whole words.
         Processes on per-example basis, may be slow.
         Roughly follows https://github.com/huggingface/transformers/blob/07708793f20ec3a949ccab32cc4fe0c7272dcc4c/src/transformers/data/data_collator.py#L301"""
-        # TODO: Vectorise this function
 
+        bs,seq_len = batch['txt']['input_ids'].shape        
         # Instantiate masked inputs
         batch['txt']['masked_input_ids'] = batch['txt']['input_ids'].detach().clone()
         # Set targets to -100 by default to ignore
         labels = -100 * torch.ones_like(batch['txt']['input_ids'], device=self.device)        
-
+        mask_label = torch.zeros_like(labels, device='cpu')
         for sample_idx,sample_input_ids in enumerate(batch['txt']['input_ids']):
 
             input_tokens = self.tok.convert_ids_to_tokens(sample_input_ids)
@@ -167,9 +167,10 @@ class PretextProcessor:
                     cand_indexes.append([i])       
             # Remaining code is as per whole word masking
             random.shuffle(cand_indexes)
-            num_to_predict = min(self.max_seq_len, max(1, int(round(sent_len * self.emlm_rate))))
+            num_to_predict = min(self.max_seq_len, max(1, int(round(sent_len * self.mlm_rate))))
             masked_lms = []
             covered_indexes = set()
+            
             for index_set in cand_indexes:
                 if len(masked_lms) >= num_to_predict:
                     break
@@ -190,10 +191,26 @@ class PretextProcessor:
 
             assert len(covered_indexes) == len(masked_lms)
             covered_indexes = list(covered_indexes)
-            # mask_labels = [1 if i in covered_indexes else 0 for i in range(len(input_tokens))]
+            # covered_indexes = torch.tensor(list(covered_indexes), dtype=int)
+            mask_label[sample_idx] = torch.tensor([1 if i in covered_indexes else 0 for i in range(len(input_tokens))])
 
-            batch['txt']['masked_input_ids'][sample_idx,covered_indexes] = torch.full((len(covered_indexes),),103, device=self.device)
-            labels[sample_idx,covered_indexes] = sample_input_ids[covered_indexes]  
+
+        # batch['txt']['masked_input_ids'][sample_idx,covered_indexes] = torch.full((len(covered_indexes),),103, device=self.device)
+        # 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
+        indices_replaced = torch.bernoulli(torch.full(labels.shape, 0.8)).bool() & mask_label.bool()
+        batch['txt']['masked_input_ids'][indices_replaced] = torch.full_like(batch['txt']['masked_input_ids'][indices_replaced],
+                                                                             self.tok.convert_tokens_to_ids(self.tok.mask_token))
+        
+        # 10% of the time, we replace masked input tokens with random word
+        indices_random = torch.bernoulli(torch.full(labels.shape, 0.5)).bool() & mask_label.bool() & ~indices_replaced
+
+        r_idx = torch.randint(0,bs*seq_len, (len(indices_random[indices_random>0]),))
+        batch['txt']['masked_input_ids'][indices_random] = batch['txt']['input_ids'].view(-1)[r_idx]
+
+        # The rest of the time (10% of the time) we keep the masked input tokens unchanged    
+        # --
+
+        labels[mask_label.bool()] = batch['txt']['input_ids'][mask_label.bool()]  
         batch['txt']['masked_labels'] = labels.to(self.device)
         return batch
     
@@ -385,5 +402,56 @@ class PretextProcessor:
 
         # expand dim to match the seq_rel linear layer output
         batch['is_matched'] = torch.unsqueeze(~inp_mask, 1).long()
+        
+        return batch
+
+    ### New tasks
+
+    def patch_corruption(self, batch):
+        """Randomly replace a token (image or text) with one from another sample
+        and set is_matched labels for a lower level ITM task"""
+        batch_size = len(batch['img']['id'])
+
+        sample_select_idx = torch.bernoulli(torch.full((batch_size,), 0.75)).bool()
+        # 1/3 time replace text, 1/3 time replace image, 1/3 time replace both
+        idx_text = torch.bernoulli(torch.full((batch_size,), 0.33)).bool() & sample_select_idx
+        idx_img = torch.bernoulli(torch.full((batch_size,), 0.33)).bool() & sample_select_idx & ~idx_text
+        idx_both = sample_select_idx.bool() & ~idx_text & ~idx_img
+        
+        idx_text = (idx_text | idx_both)
+        idx_img = (idx_img | idx_both)
+        
+        def swap_embed(inp,swap_idxs,negative_samples):
+            """ Helper to swap one element of inp (n-d tensor), taken from each row indexed by swap_idx, 
+            with a random element from negative_samples (a 1d tensor). Returns modified inp 
+            """
+            rand_idx = torch.randint(1,len(negative_samples), (sum(swap_idxs),))
+            if len(inp.shape)>2: # Image
+                rand_mask = torch.randint(0,36,(sum(swap_idxs),))
+            else:
+                # Avoid selecting special text tokens (pad, cls, sep)
+                rand_mask = [random.randint(1,len(sample[sample>0])-1) for sample in inp[swap_idxs]]
+            inp[swap_idxs,rand_mask] = negative_samples[rand_idx]
+            return inp      
+        
+        ## Txt sampling
+        masked_input_ids = batch['txt']['input_ids'].detach().clone() 
+        # Avoid swapping CLS(101), SEP(102) and padded (0)
+        avoid_mask = torch.add(batch['txt']['input_ids']==0,
+                               torch.add(batch['txt']['input_ids']==101,
+                                         batch['txt']['input_ids']==102))
+        batch['txt']['input_ids'] = swap_embed(batch['txt']['input_ids'], idx_text, masked_input_ids[~avoid_mask])
+
+        ## Img sampling
+        batch['img']['features'] = swap_embed(batch['img']['features'], idx_img, batch['img']['features'].view(-1,1024))
+        batch['img']['boxes'] = swap_embed(batch['img']['boxes'], idx_img, batch['img']['features'].view(-1,4))
+        
+        # is_matched is now a 3 class: 1 (yes), 2 (txt corrupt), 3 (img corrupt), 0 (both corrupt)
+        batch['is_matched'] = torch.ones((batch_size,), device=self.device)
+        batch['is_matched'][idx_text] = torch.full((sum(idx_text),),2., device=self.device)
+        batch['is_matched'][idx_img] = torch.full((sum(idx_img),),3., device=self.device)
+        batch['is_matched'][idx_both] = torch.zeros((sum(idx_both),), device=self.device)
+        # expand dim to match the seq_rel linear layer output
+        batch['is_matched'] = torch.unsqueeze(batch['is_matched'],1).long()
         
         return batch
