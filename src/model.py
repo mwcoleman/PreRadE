@@ -224,13 +224,14 @@ class MMRadForPretraining(MMRad):
     """PL class for pretraining multimodal transformer (single stream) such as VisualBert.
        Inherits from MMRad
        Contains methods to make predictions on specified SSL pretext tasks (e.g. MLM, MFR)
-       and logs results to logger (wandb)
+       and logs results to logger (e.g. wandb)
     """
     def __init__(self, args, train_size, tokenizer='bert-base-uncased'):
         super().__init__(args, train_size, tokenizer=tokenizer)
 
         self.task_step = {'mlm':self.mlm_step, 'mfr':self.mfr_step, 'itm':self.itm_step,
-                          'wwm':self.wwm_step, 'oovm':self.oovm_step, 'sbm':self.span_step}
+                          'wwm':self.wwm_step, 'oovm':self.oovm_step, 'sbm':self.span_step,
+                          'pc':self.pc_step}
         self.hparams.tasks = self.hparams.tasks.split(',')
         self.__init_pretraining_heads()
 
@@ -240,11 +241,13 @@ class MMRadForPretraining(MMRad):
         """
         self.text_prediction_head = VisualBertLMPredictionHead(self.config)
         self.seq_relationship_head = nn.Linear(self.config.hidden_size, 2)
+        self.patch_relationship_head = nn.Linear(self.config.hidden_size,4)
         self.image_mfr_head = nn.Sequential(
                 nn.Linear(self.config.hidden_size, self.visual_features_dim),
                 GELU(),
                 nn.LayerNorm(self.visual_features_dim, eps=1e-12)
                 )
+        
         if "sbm" in self.hparams.tasks:
             # Initialise spanbert objective head
             self.span_head = BertPairTargetPredictionHead(
@@ -255,7 +258,8 @@ class MMRadForPretraining(MMRad):
             self.span_head.apply(self.init_weights)
         
         for head in (self.text_prediction_head, 
-                     self.seq_relationship_head, 
+                     self.seq_relationship_head,
+                     self.patch_relationship_head, 
                      self.image_mfr_head):
 
             head.apply(self.init_weights)
@@ -296,8 +300,6 @@ class MMRadForPretraining(MMRad):
         loss = loss_fct(text_logits.view(-1, self.config.vocab_size), txt_labels.view(-1))
         acc = (text_preds == filtered_labels).type(torch.float).mean()*100
         return {'loss':loss, 'acc':acc}
-
-
 
     def lm_step(self, batch, batch_idx, return_encoder_output=False):
         """Computes forward pass and loss for all language modelling (text) tasks
@@ -423,7 +425,37 @@ class MMRadForPretraining(MMRad):
         loss = loss_fct(seq_relationship_score.view(-1,2), batch['is_matched'].view(-1))
         acc = (batch['is_matched'].view(-1) == seq_relationship_score.argmax(1).view(-1)).type(torch.float).mean()*100
         return {'loss':loss, 'acc':acc}             
+    
+    
+    def pc_step(self, batch, batch_idx):
+        batch = self.pp.patch_corruption(batch)        
+        batch = self.pp.img_vectorize(batch, model=self)
         
+        # Below is same as ITM step
+        outputs = self(
+            input_ids=batch['txt']['input_ids'],
+            attention_mask=batch['txt']['att_mask'],
+            # token_type_ids=batch['txt']['type_ids'],    # Let model auto-compute
+            # position_ids=batch['txt']['pos_ids'],       # let model auto (use absolute pos)
+            head_mask=None,
+            inputs_embeds=None,
+            visual_embeds=batch['img']['visual_embeds'],
+            visual_attention_mask=batch['img']['att_mask'],
+            visual_token_type_ids=None,
+            image_text_alignment=None,
+            output_attentions=False,
+            output_hidden_states=False,
+            return_dict=True,
+        )
+
+        sequence_output, pooled_output = outputs[:2]
+        seq_relationship_score = self.patch_relationship_head(pooled_output)
+        loss_fct = nn.CrossEntropyLoss()
+        loss = loss_fct(seq_relationship_score.view(-1,4), batch['is_matched'].view(-1))
+        acc = (batch['is_matched'].view(-1) == seq_relationship_score.argmax(1).view(-1)).type(torch.float).mean()*100
+        return {'loss':loss, 'acc':acc} 
+
+
     def training_step(self, batch, batch_idx):
         """Generic training step on a batch. 
 
