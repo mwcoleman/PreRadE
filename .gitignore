@@ -1,5 +1,5 @@
 # Ignore the log dirs
 lightning_logs/
 wandb/
-
+old/
 

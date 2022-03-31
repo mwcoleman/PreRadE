@@ -73,7 +73,7 @@ def parse_args(stage):
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=64)
     parser.add_argument('--valid_batch_size', dest='valid_batch_size', type=int, default=64)
     # Data path
-    parser.add_argument('--data_path', dest='data_path', default="/media/matt/data21/mmRad/MIMIC")
+    # parser.add_argument('--data_path', dest='data_path', default="/media/matt/data21/mmRad/MIMIC")
     
     ##### PL #####
     parser = pl.Trainer.add_argparse_args(parser)

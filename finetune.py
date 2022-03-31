@@ -47,7 +47,7 @@ if __name__=='__main__':
         args.epochs = 0
         args.topk = 5120 #10240
         # args.load_model = '/media/matt/data21/mmRad/checkpoints/FT/FT-baseline/encoder'#"/media/matt/data21/mmRad/checkpoints/PT/mlm-mfr-itm/encoder" #/media/matt/data21/mmRad/checkpoints/PT/12L-SWA-mlm_mfr_itm/backbone/epoch=54-step=91519.ckpt"  #"uclanlp/visualbert-vqa-coco-pre" # 
-        args.log_offline = False
+        args.log_offline = True
     
     # Needed if using TokenizerFast:
     os.environ["TOKENIZERS_PARALLELISM"] = "true"

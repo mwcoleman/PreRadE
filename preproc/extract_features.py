@@ -194,8 +194,14 @@ if __name__=='__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('--dataset', default='mimic')
+<<<<<<< Updated upstream
     parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/delme.tsv')
     parser.add_argument('--visualise', dest='visualise_examples', default=False)
+=======
+    parser.add_argument('--data_root', default='/media/matt/data21/datasets/')
+    parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/mimic-experimental_DELME.tsv')
+    parser.add_argument('--visualise', dest='visualise_examples', default=True)
+>>>>>>> Stashed changes
     parser.add_argument('--split', default=None)
     parser.add_argument('--csv_file', default='studies_with_splits.csv')
 

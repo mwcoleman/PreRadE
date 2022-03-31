@@ -45,29 +45,37 @@ class MMRadDM(pl.LightningDataModule):
 
         
         if stage=='fit' or stage is None:
-
-            mimic_data = MimicDataset(self.train_txt_path, self.train_img_path,
-                                        topk=self.hparams.topk,
-                                        binary_task=self.hparams.easy_classification,
-                                        useOpenILabels=(self.test_ds=='openI'))
             
-
-            if self.hparams.use_val_split:
-                # self.train_dset = mimic_data
-                self.valid_dset = MimicDataset(self.train_txt_path, self.val_img_path,
-                                        topk=self.hparams.val_topk,
-                                        binary_task=self.hparams.easy_classification)
-            
+            if self.hparams.train=='mscoco':
+                # Temporary/quick:
+                coco_root = '/media/matt/data21/mmRad/COCO/'
+                self.train_dset = CocoDataset(coco_root+'captions_train2017.json',
+                        coco_root+'mscoco-train_2017-custom.tsv', coco_root+'instances_train2017.json', topk=self.hparams.topk)
+                self.valid_dset = CocoDataset(coco_root+'captions_val2017.json',
+                        coco_root+'mscoco-val_2017-custom.tsv', coco_root+'instances_val2017.json', topk=self.hparams.val_topk)
             else:
-                split_ratio=0.98
-                print(f"No val data provided, splitting {100*(1-split_ratio):}% train for val")
-                train_set_size = int(len(mimic_data)*split_ratio)
-                valid_set_size = len(mimic_data) - train_set_size
-                self.train_dset, self.valid_dset = random_split(mimic_data, [train_set_size, valid_set_size],
-                                                                generator=self.g)   
+                mimic_data = MimicDataset(self.train_txt_path, self.train_img_path,
+                                            topk=self.hparams.topk,
+                                            binary_task=self.hparams.easy_classification,
+                                            useOpenILabels=(self.test_ds=='openI'))
+                
 
-            self.labelset = mimic_data.labelset
-            self.num_classes = 1 if self.hparams.easy_classification else len(self.labelset)
+                if self.hparams.use_val_split:
+                    # self.train_dset = mimic_data
+                    self.valid_dset = MimicDataset(self.train_txt_path, self.val_img_path,
+                                            topk=self.hparams.val_topk,
+                                            binary_task=self.hparams.easy_classification)
+                
+                else:
+                    split_ratio=0.98
+                    print(f"No val data provided, splitting {100*(1-split_ratio):}% train for val")
+                    train_set_size = int(len(mimic_data)*split_ratio)
+                    valid_set_size = len(mimic_data) - train_set_size
+                    self.train_dset, self.valid_dset = random_split(mimic_data, [train_set_size, valid_set_size],
+                                                                    generator=self.g)   
+
+                self.labelset = mimic_data.labelset
+                self.num_classes = 1 if self.hparams.easy_classification else len(self.labelset)
             
             self.train_size,self.valid_size = len(self.train_dset), len(self.valid_dset)
             print(f"Size of train / val / test splits: {self.train_size} / {self.valid_size} / {self.test_size}")
@@ -224,43 +232,69 @@ class MimicDataset(Dataset):
                  }
         return sample
 
-# class CocoDataset(Dataset):
-#     """MS-COCO dataset captions only
-#     No transforms/process here"""
-#     def __init__(self, json_fp, img_ft_path, topk=5120):
-#         super().__init__()
+class CocoDataset(Dataset):
+    """MS-COCO dataset captions only
+    No transforms/process here"""
+    def __init__(self, json_fp, img_ft_path, labels_fp, topk=5120):
+        super().__init__()
 
-#         with open(json_fp) as f:
-#             self.metadata = json.load(f)
-#         # Dict of image fts' by id
-#         self.img_data = load_tsv(img_ft_path, topk=topk)
-#         # Add captions as duplicate tuples
-#         self.txt_data = [{'img_id':item['image_id'], 'caption':item['caption']} 
-#                           for item in self.metadata['annotations']]
-#         if topk != 0:
-#             # Filter img_ids to match loaded topk
-#             self.txt_data = [item for item in self.txt_data
-#                              if self.img_data.get(str(item['img_id']), 0) != 0]
+        with open(json_fp) as f:
+            self.metadata = json.load(f)
 
-    # def __len__(self):
-    #     return len(self.img_data)
-    
-    # def __getitem__(self, idx):
-    #     if torch.is_tensor(idx):
-    #         idx = idx.tolist()
+
+
+        # Dict of image fts' by id
+        self.img_data = load_tsv(img_ft_path, topk=topk)
+        # Add captions as duplicate tuples
+        self.txt_data = [{'img_id':item['image_id'], 'caption':item['caption']} 
+                          for item in self.metadata['annotations']]
+        if topk != 0:
+            # Filter img_ids to match loaded topk
+            self.txt_data = [item for item in self.txt_data
+                             if self.img_data.get(str(item['img_id']), 0) != 0]
+        # Get label lookup
+        self.id_to_labels,self.label_map = self.build_label_lookup(labels_fp)
+        # TODO: refactor labels to contigous sequence 0-80, convert to onehot array..
+
+
+    def build_label_lookup(self,json_path):
+        from collections import defaultdict
+        # Labels in coco go up to 87
+        with open(json_path) as f:
+            coco = json.loads(f.read())
         
-    #     # Produces a sample per txt sequence- image features are duplicated for each.        
-    #     img_id = str(self.txt_data[idx]['img_id'])
-    #     caption = self.txt_data[idx]['caption']
-    #     img_data = self.img_data[img_id]
-    #     # Create nested
-    #     sample = {'txt': {'raw' : caption}, 
-    #               'img': {'id' : img_id, 
-    #                       'features' : img_data['features'], 
-    #                       'boxes' : img_data['boxes'],
-    #                       'num_boxes' : img_data['num_boxes'], 
-    #                       'img_h' : img_data['img_h'],
-    #                       'img_w' : img_data['img_w']
-    #                       }
-    #              }
-    #     return sample
+        img_label_pairs = [(a['image_id'],a['category_id']) for a in  coco['annotations']]
+        
+        class_id_to_name = coco['categories']
+        id_to_label = defaultdict(list)
+
+        for id, label in img_label_pairs:
+            if label not in id_to_label[id]: id_to_label[id].append(label) 
+
+        return id_to_label, class_id_to_name
+
+
+
+    def __len__(self):
+        return len(self.img_data)
+    
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        
+        # Produces a sample per txt sequence- image features are duplicated for each.        
+        img_id = str(self.txt_data[idx]['img_id'])
+        caption = self.txt_data[idx]['caption']
+        img_data = self.img_data[img_id]
+        # Create nested
+        sample = {'txt': {'raw' : caption}, 
+                  'img': {'id' : img_id, 
+                          'features' : img_data['features'], 
+                          'boxes' : img_data['boxes'],
+                          'num_boxes' : img_data['num_boxes'], 
+                          'img_h' : img_data['img_h'],
+                          'img_w' : img_data['img_w']
+                          },
+                  'label': []
+                 }
+        return sample

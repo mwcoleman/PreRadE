@@ -16,8 +16,8 @@ from detectron2 import model_zoo
 from detectron2.config import get_cfg
 from detectron2.utils.visualizer import Visualizer
 
-import pytorch_lightning as pl
-import wandb
+# import pytorch_lightning as pl
+# import wandb
 
 # Custom collate for dataloader to keep images in list
 # due to ragged shape
@@ -118,7 +118,6 @@ class Extractor:
         image_shapes = outputs.image_shapes
 
         # boxes need to be rescaled to original image size
-        # TODO: Temporary Loop. Convert to vectorised if slow
         def get_output_boxes(boxes, batched_inputs, image_size, scores):
             proposal_boxes = boxes.reshape(-1, 4).clone()
             scale_x, scale_y = (batched_inputs["width"] / image_size[1], batched_inputs["height"] / image_size[0])
@@ -136,42 +135,48 @@ class Extractor:
             cls_prob = scores.detach()
             # Expect 1000x80x40 but might be less
             cls_boxes = output_boxes.tensor.detach().reshape(-1,80,4)
+            
             max_conf = torch.zeros((cls_boxes.shape[0]))
-            for cls_ind in range(0, cls_prob.shape[1]-1):
-                cls_scores = cls_prob[:, cls_ind+1]
+
+            for cls_ind in range(0, cls_prob.shape[1]-1):   # cls_prob.shape == 1000,81
+                cls_scores = cls_prob[:, cls_ind+1]  # cls_prob[,i+1] <-> cls_boxes[,i] indexing offset
                 det_boxes = cls_boxes[:,cls_ind,:]
                 keep = np.array(nms(det_boxes, cls_scores, test_nms_thresh).cpu())
                 max_conf[keep] = torch.where(cls_scores[keep].cpu() > max_conf[keep].cpu(), cls_scores[keep].cpu(), max_conf[keep].cpu())
+            # Return max_conf above score threshold
             keep_boxes = torch.where(max_conf >= test_score_thresh)[0]
-            
             # Limit total number of pboxes, to the best few proposals and limit the sequence length. set min and max
             if len(keep_boxes) < self.min_boxes:
                 keep_boxes = np.argsort(max_conf).numpy()[::-1][:self.min_boxes]
             elif len(keep_boxes) > self.max_boxes:
                 keep_boxes = np.argsort(max_conf).numpy()[::-1][:self.max_boxes]
 
-            # TODO: Return the object labels and confidence. Currently not working
-            # objects = np.argmax(cls_prob[keep_boxes.copy()][:, :-1].to("cpu"), axis=1)
-            # objects_conf = np.max(cls_prob[keep_boxes.copy()][:, :-1].to("cpu"), axis=1)
-
-            # keep_boxes is idx of >nms. output_boxes is all boxes (80x4 for each feature??) sorted by objectness confidence.
-            return keep_boxes, cls_boxes#, objects, objects_conf
-        # keep_boxes,objects,objects_conf = zip(*[get_output_boxes(boxes[i], batched_inputs[i], proposals[i].image_size, scores[i]) for i in range(len(proposals))])        
-        keep_boxes,output_boxes = zip(*[get_output_boxes(boxes[i], batched_inputs[i], proposals[i].image_size, scores[i]) 
+            # keep_boxes is idx of >nms. cls_boxes is all boxes (80 per each region/feature) sorted by objectness confidence.
+            return keep_boxes, cls_boxes, cls_prob#, objects, objects_conf
+        # Loop through for each image in batch; len(proposals) == batch len
+        keep_boxes,output_boxes,cls_probs = zip(*[get_output_boxes(boxes[i], batched_inputs[i], proposals[i].image_size, scores[i]) 
                                         for i in range(len(proposals))])
         
-        # visual_embeds,output_boxes = zip(*[(base64.b64encode(box_feature[keep_box.copy()].detach().cpu().numpy()),
-        #                                     base64.b64encode(output_box[keep_box.copy()].detach().cpu().numpy())) # TODO: boxes should be 36x4, not 36x80x4
-        visual_embeds,output_boxes = zip(*[(box_feature[keep_box.copy()],
-                                            output_box[keep_box.copy()]) # TODO: boxes should be 36x4, not 36x80x4
-                         for box_feature, keep_box, output_box 
-                         in zip(box_features,keep_boxes, output_boxes)])
+        # Return 
+        visual_embeds,output_boxes, cls_probs = zip(*[ (box_feature[keep_box.copy()],
+                                            output_box[keep_box.copy()],
+                                            cls_prob[keep_box.copy()])  
+                         for box_feature, keep_box, output_box, cls_prob
+                         in zip(box_features,keep_boxes, output_boxes, cls_probs)])
 
-        # output_boxes.shape is 36,80,4 (e.g. 80 boxes per feature, and 80=#classes),
-        #  sorted by confidence. So pick the top 1 (?...)
-        output_boxes = [ob[:,0,:] for ob in output_boxes]
-
-        return visual_embeds, output_boxes, len(keep_boxes[0]) #, objects, objects_conf
+        # cls_prob = cls_prob[keep_box.copy()]
+        # output_boxes.shape is 36,80,4 (e.g. 80 boxes per feature, and 80=#classes; one box per class),
+        #  sorted by confidence. So pick the top 
+        # TODO: take max
+        max_output_boxes = []
+        for i,ob in enumerate(output_boxes):
+            # Find box corresponding to max prob - (36,)
+            max_box_idxs = torch.argmax(cls_probs[i][:,:-1], dim=1)
+            max_output_boxes.append(ob[:,max_box_idxs,:])
+        # output_boxes = [ob[:,torch.argmax]]
+        # output_boxes = [ob[:,0,:] for ob in output_boxes]
+        # cls_probs = [p[:,0]]
+        return visual_embeds, max_output_boxes, len(keep_boxes[0]) #, objects, objects_conf
 
     def visualise_features(self, samples):
         """Takes a sample input (generated from calling PrepareImageInputs)
@@ -200,21 +205,35 @@ class Extractor:
     def show_sample(self, samples):
         # Pass in prepared samples (batched_inputs)
         # slice first image
-        outputs = self.model(samples[1])[0]
-        # (xmin,ymin,xmax,ymax)
-        # print(outputs['instances'].pred_boxes)
-        v = Visualizer(samples[1][0]['image'].cpu().permute((1,2,0)), scale=1.2)
+
+        outputs_all = self.model(samples[1])
+
+        for i,output in enumerate(outputs_all):
+            v = Visualizer(samples[1][i]['image'].cpu().permute((1,2,0)), scale=1.2)
+            output['instances'].pred_boxes.tensor = output['instances'].pred_boxes.tensor.detach()
+            output['instances'].scores = output['instances'].scores.detach()
+            output['instances'].pred_classes = output['instances'].pred_classes.detach()
+            try:
+                output['instances'].pred_masks = output['instances'].pred_masks.detach()
+            except:
+                # Not a mask model
+                pass
+            out = v.draw_instance_predictions(output["instances"].to("cpu"))
+            cv2.imshow('',out.get_image()) 
+
+        # outputs = self.model(samples[1])[0]
+        # v = Visualizer(samples[1][0]['image'].cpu().permute((1,2,0)), scale=1.2)
         
-        outputs['instances'].pred_boxes.tensor = outputs['instances'].pred_boxes.tensor.detach()
-        outputs['instances'].scores = outputs['instances'].scores.detach()
-        outputs['instances'].pred_classes = outputs['instances'].pred_classes.detach()
-        try:
-            outputs['instances'].pred_masks = outputs['instances'].pred_masks.detach()
-        except:
-            # Not a mask model
-            pass
-        out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-        cv2.imshow('',out.get_image()) #[:,:,::-1]
+        # outputs['instances'].pred_boxes.tensor = outputs['instances'].pred_boxes.tensor.detach()
+        # outputs['instances'].scores = outputs['instances'].scores.detach()
+        # outputs['instances'].pred_classes = outputs['instances'].pred_classes.detach()
+        # try:
+        #     outputs['instances'].pred_masks = outputs['instances'].pred_masks.detach()
+        # except:
+        #     # Not a mask model
+        #     pass
+        # out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+        # cv2.imshow('',out.get_image()) 
 
 class PrepareImageInputs(object):
     """Convert an image to a model input

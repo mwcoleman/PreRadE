@@ -18,10 +18,9 @@ warnings.filterwarnings(
 warnings.filterwarnings(
     "ignore", ".*DataModule.setup has already been called.*"
 )
-##
 def load_paths_dict(cfg='data_paths.json'):
     with open(cfg, 'r') as file:
-        pd = json.loads(file.read()) # use `json.loads` to do the reverse
+        pd = json.loads(file.read()) 
     return pd
 
 # Sample run 
@@ -32,19 +31,24 @@ if __name__=='__main__':
     pl.seed_everything(808, workers=True)
     ### DEBUG args
     if len(sys.argv)<2:
-        # args.max_steps = 2000
-        # args.topk = 5120
-        args.load_model = "uclanlp/visualbert-vqa-coco-pre"
-        args.tasks = "mfr"
-        # args.log_offline = True
+        args.max_steps = 2000
+        args.topk = 5120
+        args.load_model = "scratch"#"uclanlp/visualbert-vqa-coco-pre"
+        args.tasks = "pc"
+        args.log_offline = True
+        args.run_name = "debug"
+
 
     # Define run name:
     args.run_name = args.tasks.replace(',','-') if args.run_name == 'tasks' else args.run_name
     
+    # SpanBERT Gather op is non-deterministic
+    predetermined = False if "sbm" in args.tasks else True
+
     path_dict = load_paths_dict()
 
     # Needed if using TokenizerFast:
-    os.environ["TOKENIZERS_PARALLELISM"] = "true"
+    os.environ["TOKENIZERS_PARALLELISM"] = "True"
 
     print(f"""\n\n\nPretraining with parameters: \n
     Run name: {args.run_name}
@@ -59,15 +63,20 @@ if __name__=='__main__':
     Max sequence length: {args.max_seq_len} 
     Dataset: {args.train}
     Subset?: {args.topk}
-    
+        
     Learning Rate: {args.lr}
-    Using Scheduler: {args.lr_scheduler}\n\n\n""")
+    Using Scheduler: {args.lr_scheduler}\n\n\n
+    Running deterministic?: {predetermined}""")
+
+
+    
 
     # Logging & Callbacks
     wandb_logger = WandbLogger(
         name=args.run_name, 
         project='mmRad-Pretraining', 
-        offline=args.log_offline
+        offline=args.log_offline,
+        save_dir='/media/matt/data21/mmRad/wandb/'
         )
 
     wandb_logger.experiment.config.update(args)
@@ -122,7 +131,7 @@ if __name__=='__main__':
         log_every_n_steps=10, 
         # max_epochs=args.epochs,
         max_steps=args.steps, 
-        deterministic=True, 
+        deterministic=predetermined, 
         track_grad_norm=-1, 
         fast_dev_run=False, 
         benchmark=True
