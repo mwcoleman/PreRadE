@@ -92,50 +92,6 @@ class RawMimicDataset(Dataset):
                   'image':image}
         return sample
 
-# class RawCubDataset(Dataset):
-#     """CUB dataset; image, class, caption"""
-#     def __init__(self, csv_file=None, img_dir=None):
-#         if csv_file is None:
-#             csv_file = self.join_cub_csv()
-#         self.data = pd.read_csv(csv_file)
-            
-#         self.img_dir = img_dir
-#     def __len__(self):
-#         return len(self.data)
-#     def __getitem__(self, idx):
-#         if torch.is_tensor(idx):
-#             idx = idx.tolist()
-        
-#         image_fp = os.path.join(self.img_dir,
-#                                 self.data['filenames'][idx])
-#         image = plt.imread(image_fp)
-#         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
-        
-#         # 0 vs 1 indexed not that it matters
-#         sample = {'img_id': self.data['id'][idx], 
-#                   'caption':self.data['captions'][idx], 
-#                   'label':self.data['class'][idx],
-#                   'image':image}
-#         return sample
-    
-#     def join_cub_csv(root_dir='/media/matt/data21/datasets/CUB/'):
-#         """"Concat files to simple csv"""
-#         caption_df = pd.read_csv(root_dir + 'sentences.csv')
-#         image_df = pd.read_csv(root_dir + 'images.txt', sep=' ', header=None)
-#         class_df = pd.read_csv(root_dir + 'image_class_labels.txt', sep=' ', header=None)
-
-#         image_df.rename(columns={1:'filenames', 0:'id'}, inplace=True)
-#         class_df.rename(columns={0:'id', 1:'class'}, inplace=True)    
-
-#         caption_dict = {}
-#         for _, row in caption_df.iterrows():
-#             caption_dict[row['filepath']] = row['captions']
-
-#         image_df['captions'] = image_df[1].apply(lambda x: caption_dict[x])
-
-#         df = pd.concat([image_df, class_df['class']], axis=1)
-#         df.to_csv(root_dir + 'caption_label_data.csv', index=None)
-#         return root_dir + 'caption_label_data.csv'
 
 class RawCocoDataset(Dataset):
     """MS-COCO dataset captions only
@@ -194,14 +150,9 @@ if __name__=='__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('--dataset', default='mimic')
-<<<<<<< Updated upstream
     parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/delme.tsv')
     parser.add_argument('--visualise', dest='visualise_examples', default=False)
-=======
     parser.add_argument('--data_root', default='/media/matt/data21/datasets/')
-    parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/mimic-experimental_DELME.tsv')
-    parser.add_argument('--visualise', dest='visualise_examples', default=True)
->>>>>>> Stashed changes
     parser.add_argument('--split', default=None)
     parser.add_argument('--csv_file', default='studies_with_splits.csv')
 
@@ -255,7 +206,7 @@ if __name__=='__main__':
             d2_rcnn.visualise_features(samples)
             args.visualise_examples=False
         
-        visual_embeds, output_boxes, num_boxes = d2_rcnn(samples)
+        visual_embeds, output_boxes, num_boxes, cls_probs = d2_rcnn(samples)
         
         # write current batch to file
         # img dim is resized to have shortest edge a multiple
@@ -265,7 +216,8 @@ if __name__=='__main__':
                        'img_w': samples[1][i]['width'],
                        'num_boxes': num_boxes,
                        'boxes': base64.b64encode(output_boxes[i].detach().cpu().numpy()),
-                       'features': base64.b64encode(visual_embeds[i].detach().cpu().numpy())}
+                       'features': base64.b64encode(visual_embeds[i].detach().cpu().numpy()),
+                       'cls_probs': cls_probs[i]}
                        for i in range(len(samples[0]))]
         tsv_writer(items_dict)
 

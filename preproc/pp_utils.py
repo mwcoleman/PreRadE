@@ -160,14 +160,13 @@ class Extractor:
         # Return 
         visual_embeds,output_boxes, cls_probs = zip(*[ (box_feature[keep_box.copy()],
                                             output_box[keep_box.copy()],
-                                            cls_prob[keep_box.copy()])  
+                                            cls_prob[keep_box.copy(),:-1])  
                          for box_feature, keep_box, output_box, cls_prob
                          in zip(box_features,keep_boxes, output_boxes, cls_probs)])
 
-        # cls_prob = cls_prob[keep_box.copy()]
+
         # output_boxes.shape is 36,80,4 (e.g. 80 boxes per feature, and 80=#classes; one box per class),
-        #  sorted by confidence. So pick the top 
-        # TODO: take max
+        #  sorted by confidence.
         max_output_boxes = []
         for i,ob in enumerate(output_boxes):
             # Find box corresponding to max prob - (36,)
@@ -176,7 +175,7 @@ class Extractor:
         # output_boxes = [ob[:,torch.argmax]]
         # output_boxes = [ob[:,0,:] for ob in output_boxes]
         # cls_probs = [p[:,0]]
-        return visual_embeds, max_output_boxes, len(keep_boxes[0]) #, objects, objects_conf
+        return visual_embeds, max_output_boxes, len(keep_boxes[0]), cls_probs #, objects, objects_conf
 
     def visualise_features(self, samples):
         """Takes a sample input (generated from calling PrepareImageInputs)
@@ -191,15 +190,12 @@ class Extractor:
         ax[0].imshow(cv2.resize(np.moveaxis(sample_img.cpu().numpy(), 0,-1)[:,:,::-1]/255., (images.tensor.shape[-2:][::-1])))  
         ax[0].set_title(str(images.tensor.shape[-2:][::-1]).split('[')[1][:-2], fontsize='x-small')
         ax[0].axis('off')  
-        # plt.imshow(cv2.resize(np.moveaxis(sample_img.cpu().numpy(), 0,-1)[:,:,::-1]/255., (images.tensor.shape[-2:][::-1])))
-        # plt.show()
+
         for i,key in enumerate(features.keys()): # p2,p3,p4,p5,p6
             ax[i+1].imshow(features[key][0,0,:,:].squeeze().detach().cpu().numpy(), cmap='jet')
             ax[i+1].set_title(str(features[key].shape).split('[')[1][:-2], fontsize='x-small')
             ax[i+1].axis('off')  
-            # plt.imshow(features[key][1,0,:,:].squeeze().detach().cpu().numpy(), cmap='jet')
         plt.tight_layout()
-        # plt.axis('off')    
         plt.show()    
 
     def show_sample(self, samples):
@@ -220,20 +216,6 @@ class Extractor:
                 pass
             out = v.draw_instance_predictions(output["instances"].to("cpu"))
             cv2.imshow('',out.get_image()) 
-
-        # outputs = self.model(samples[1])[0]
-        # v = Visualizer(samples[1][0]['image'].cpu().permute((1,2,0)), scale=1.2)
-        
-        # outputs['instances'].pred_boxes.tensor = outputs['instances'].pred_boxes.tensor.detach()
-        # outputs['instances'].scores = outputs['instances'].scores.detach()
-        # outputs['instances'].pred_classes = outputs['instances'].pred_classes.detach()
-        # try:
-        #     outputs['instances'].pred_masks = outputs['instances'].pred_masks.detach()
-        # except:
-        #     # Not a mask model
-        #     pass
-        # out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-        # cv2.imshow('',out.get_image()) 
 
 class PrepareImageInputs(object):
     """Convert an image to a model input
@@ -274,21 +256,6 @@ class PrepareImageInputs(object):
         
         return images, batched_inputs
         
-        
-    
-    # def load_mimic(self, img_path, caption_path):
-    #     """Load and store images in a list
-    #     detectron expects in format bgr
-    #     caption_path: path to .json with image_id corresponding to file name
-    #                   and caption corresponding to text report
-    #     """
-
-    #     # with open(caption_path) as f:
-    #     #     a = json.load(f)
-    #     # image_id = a['image_id']
-
-    #     # # for im in img_path:
-    #     #     img = 
 
 class FeatureWriterTSV(object):
     def __init__(self, fname):
@@ -296,7 +263,7 @@ class FeatureWriterTSV(object):
         # self.fieldnames = ["img_id", "img_h", "img_w", "objects_id", "objects_conf",
         #       "attrs_id", "attrs_conf", "num_boxes", "boxes", "features"]    
         self.fieldnames = ["img_id", "img_h", "img_w", 
-                           "num_boxes", "boxes", "features"]
+                           "num_boxes", "boxes", "features", "cls_probs"]
         self.fname = fname
 
 
@@ -325,7 +292,7 @@ def load_tsv(fname, topk=None):
     print(f"\nStarting to load pre-extracted Faster-RCNN detected objects from {fname}...")
     with open(fname, 'r') as f:
         reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
-                        "num_boxes", "boxes", "features"], delimiter="\t")
+                        "num_boxes", "boxes", "features", "cls_probs"], delimiter="\t")
         
         data = {}
         for _, item in enumerate(reader):
@@ -336,7 +303,7 @@ def load_tsv(fname, topk=None):
             # slice from 2: to remove b' (csv.writer wraps all vals in str())
             new_item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32).reshape(num_boxes,-1).copy()
             new_item['boxes'] = np.frombuffer(base64.b64decode(item['boxes'][2:]), dtype=np.float32).reshape(num_boxes,4).copy()
-            
+            new_item['cls_probs'] = float(item['cls_probs'])
             data[item['img_id']] = new_item
             if topk is not None and len(data) == topk:
                 break
@@ -344,34 +311,3 @@ def load_tsv(fname, topk=None):
     print(f"Loaded {len(data)} image features from {fname} in {elapsed_time:.2f} seconds.\n\n")
     return data
 
-
-
-# def plot_sample_coco(coco_annot_path, coco_img_path):
-#     coco = RawCocoDataset(COCO_ANNOT_PATH, COCO_IMG_PATH)
-
-#     fig, ax = plt.subplots(1,4)
-
-#     for i in range(4):
-#         sample = coco[i]
-
-#         print(i, sample['image'].shape, len(sample['captions']))
-#         ax[i].imshow(sample['image'])
-#         ax[i].set_title(f"sample #{i}")
-#         print(sample['captions'])
-#     plt.tight_layout
-#     plt.show()
-
-# def tsvReader(fname):
-#     """Sample method to read feature tsv file for PT data loading"""
-#     import sys
-#     csv.field_size_limit(sys.maxsize)
-#     with open(fname, 'r') as f:
-#         reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
-#                         "num_boxes", "boxes", "features"], delimiter="\t")
-#         for i, item in enumerate(reader):
-#             num_boxes = int(item['num_boxes'])
-#             for key in ['img_h', 'img_w', 'num_boxes']:
-#                 item[key] = int(item[key])
-#             # slice from 2: to remove b' (csv.writer wraps all vals in str())
-#             item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32).reshape(num_boxes,-1)
-#             item['boxes'] = np.frombuffer(base64.b64decode(item['boxes'][2:]), dtype=np.float32).reshape(num_boxes,4) # will throw error atm
