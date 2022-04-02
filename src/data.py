@@ -226,7 +226,8 @@ class MimicDataset(Dataset):
                           'boxes' : img_data['boxes'],
                           'num_boxes' : img_data['num_boxes'], 
                           'img_h' : img_data['img_h'],
-                          'img_w' : img_data['img_w']
+                          'img_w' : img_data['img_w'],
+                          'cls_probs' : img_data['cls_probs']
                           },
                   'label': np.asarray(selected[self.labelset].astype(float))#self.label_data.iloc[idx]
                  }

@@ -171,9 +171,12 @@ class Extractor:
         for i,ob in enumerate(output_boxes):
             # Find box corresponding to max prob - (36,)
             max_box_idxs = torch.argmax(cls_probs[i][:,:-1], dim=1)
-            max_output_boxes.append(ob[:,max_box_idxs,:])
-        # output_boxes = [ob[:,torch.argmax]]
-        # output_boxes = [ob[:,0,:] for ob in output_boxes]
+            
+            # rather ugly multi-dimensional indexing
+            max_ob = torch.stack([ob[i,idx,:4] for i,idx in enumerate(max_box_idxs)])
+
+            max_output_boxes.append(max_ob)
+        output_boxes = [ob[:,0,:] for ob in output_boxes]
         # cls_probs = [p[:,0]]
         return visual_embeds, max_output_boxes, len(keep_boxes[0]), cls_probs #, objects, objects_conf
 
@@ -278,36 +281,36 @@ class FeatureWriterTSV(object):
             for item in items_dict:
                 writer.writerow(item)
 
-def load_tsv(fname, topk=None):
-    """Load object features from tsv file.
+# def load_tsv(fname, topk=None):
+#     """Load object features from tsv file.
 
-    :param fname: The path to the tsv file.
-    :param topk: Only load features for top K images (lines) in the tsv file.
-        Will load all the features if topk is either -1 or None.
-    :return: A dict of image object features where each feature is a dict.
-    """
-    import sys
-    csv.field_size_limit(sys.maxsize)
-    start_time = time.time()
-    print(f"\nStarting to load pre-extracted Faster-RCNN detected objects from {fname}...")
-    with open(fname, 'r') as f:
-        reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
-                        "num_boxes", "boxes", "features", "cls_probs"], delimiter="\t")
+#     :param fname: The path to the tsv file.
+#     :param topk: Only load features for top K images (lines) in the tsv file.
+#         Will load all the features if topk is either -1 or None.
+#     :return: A dict of image object features where each feature is a dict.
+#     """
+#     import sys
+#     csv.field_size_limit(sys.maxsize)
+#     start_time = time.time()
+#     print(f"\nStarting to load pre-extracted Faster-RCNN detected objects from {fname}...")
+#     with open(fname, 'r') as f:
+#         reader = csv.DictReader(f, ["img_id", "img_h", "img_w", 
+#                         "num_boxes", "boxes", "features", "cls_probs"], delimiter="\t")
         
-        data = {}
-        for _, item in enumerate(reader):
-            new_item = {}
-            num_boxes = int(item['num_boxes'])
-            for key in ['img_h', 'img_w', 'num_boxes']:
-                new_item[key] = int(item[key])
-            # slice from 2: to remove b' (csv.writer wraps all vals in str())
-            new_item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32).reshape(num_boxes,-1).copy()
-            new_item['boxes'] = np.frombuffer(base64.b64decode(item['boxes'][2:]), dtype=np.float32).reshape(num_boxes,4).copy()
-            new_item['cls_probs'] = float(item['cls_probs'])
-            data[item['img_id']] = new_item
-            if topk is not None and len(data) == topk:
-                break
-    elapsed_time = time.time() - start_time
-    print(f"Loaded {len(data)} image features from {fname} in {elapsed_time:.2f} seconds.\n\n")
-    return data
+#         data = {}
+#         for _, item in enumerate(reader):
+#             new_item = {}
+#             num_boxes = int(item['num_boxes'])
+#             for key in ['img_h', 'img_w', 'num_boxes']:
+#                 new_item[key] = int(item[key])
+#             # slice from 2: to remove b' (csv.writer wraps all vals in str())
+#             new_item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32).reshape(num_boxes,-1).copy()
+#             new_item['boxes'] = np.frombuffer(base64.b64decode(item['boxes'][2:]), dtype=np.float32).reshape(num_boxes,4).copy()
+#             new_item['cls_probs'] = float(item['cls_probs'])
+#             data[item['img_id']] = new_item
+#             if topk is not None and len(data) == topk:
+#                 break
+#     elapsed_time = time.time() - start_time
+#     print(f"Loaded {len(data)} image features from {fname} in {elapsed_time:.2f} seconds.\n\n")
+#     return data
 

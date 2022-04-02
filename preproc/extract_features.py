@@ -23,6 +23,8 @@ class RawOpenIDataset(Dataset):
     csv_path: (str) csv path containing image ID and filepath
     img_root: (str) path to image folder
     split: (optional) (str) extract features for train/test
+            if using multi split csv, one of following:
+                '95','5','2.5','1.25','0.6125'
     """
     def __init__(self, csv_path, image_root, split=None):
         # Only extracting for those with findings
@@ -61,16 +63,26 @@ class RawMimicDataset(Dataset):
         dicom_id split subject_id study_id path report ViewPosition report_len 
         AND all labels after processing (-> int, 'no findings' removed etc.)
     split: (str) extract features for [TRAIN/VAL/TEST]  (default 0.9/.05/.05)
+    2022 update: if using multi split csv: valid split are in split_dict below
     """
-    def __init__(self, csv_path, image_root, split='FT'):
-        # Only extracting for those with findings
-        data = pd.read_csv(csv_path)
-        # splits = pd.read_csv(id_to_split)
+    def __init__(self, csv_path, image_root, split=''):
 
+        data = pd.read_csv(csv_path, dtype={'split':str})
         self.img_root_dir = image_root
 
-        self.valid_data = data[data['split']==split] if split is not None else data
+       # splits are subsets
+        split_dict = {
+            '95':['95'],
+            'TEST':['TEST'],  
+            '5':['5','2.5','1.25','0.6125'],  # These 4 are subsets
+            '2.5':['2.5','1.25','0.6125'],
+            '1.25':['1.25','0.6125'],
+            '0.6125':['0.6125']
+        }
+
+        self.valid_data = data[data['split'].isin(split_dict[split])] if split is not None else data
         self.valid_data.reset_index(inplace=True)
+        print(f"{split} chosen, {self.valid_data.shape[0]} samples for extraction")
 
     def __len__(self):
         return len(self.valid_data)
@@ -153,8 +165,8 @@ if __name__=='__main__':
     parser.add_argument('--output', default='/media/matt/data21/mmRad/img_features/delme.tsv')
     parser.add_argument('--visualise', dest='visualise_examples', default=False)
     parser.add_argument('--data_root', default='/media/matt/data21/datasets/')
-    parser.add_argument('--split', default=None)
-    parser.add_argument('--csv_file', default='studies_with_splits.csv')
+    parser.add_argument('--split', default=r'0.6125', type=str)
+    parser.add_argument('--csv_file', default='studies_with_splits_multi.csv')
 
 
     args = parser.parse_args()
@@ -217,7 +229,7 @@ if __name__=='__main__':
                        'num_boxes': num_boxes,
                        'boxes': base64.b64encode(output_boxes[i].detach().cpu().numpy()),
                        'features': base64.b64encode(visual_embeds[i].detach().cpu().numpy()),
-                       'cls_probs': cls_probs[i]}
+                       'cls_probs': base64.b64encode(cls_probs[i].detach().cpu().numpy())}
                        for i in range(len(samples[0]))]
         tsv_writer(items_dict)
 
