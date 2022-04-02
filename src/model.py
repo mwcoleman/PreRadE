@@ -1,6 +1,7 @@
 import os, random
 import torch
 from torch import nn
+from torch.nn import functional as F
 from torch.nn import CrossEntropyLoss, MSELoss, GELU, BCELoss
 import pytorch_lightning as pl
 
@@ -231,7 +232,7 @@ class MMRadForPretraining(MMRad):
 
         self.task_step = {'mlm':self.mlm_step, 'mfr':self.mfr_step, 'itm':self.itm_step,
                           'wwm':self.wwm_step, 'oovm':self.oovm_step, 'sbm':self.span_step,
-                          'pc':self.pc_step}
+                          'pc':self.pc_step, 'mrc':self.mrc_step}
         self.hparams.tasks = self.hparams.tasks.split(',')
         self.__init_pretraining_heads()
 
@@ -247,6 +248,11 @@ class MMRadForPretraining(MMRad):
                 GELU(),
                 nn.LayerNorm(self.visual_features_dim, eps=1e-12)
                 )
+        self.image_mrc_head = nn.Sequential(
+            nn.Linear(self.config.hidden_size, 80),
+            GELU(),
+            nn.LayerNorm(80, eps=1e-12)
+        )
         
         if "sbm" in self.hparams.tasks:
             # Initialise spanbert objective head
@@ -260,7 +266,8 @@ class MMRadForPretraining(MMRad):
         for head in (self.text_prediction_head, 
                      self.seq_relationship_head,
                      self.patch_relationship_head, 
-                     self.image_mfr_head):
+                     self.image_mfr_head,
+                     self.image_mrc_head):
 
             head.apply(self.init_weights)
 
@@ -353,6 +360,46 @@ class MMRadForPretraining(MMRad):
         loss = loss_fct(text_logits.view(-1, self.config.vocab_size), txt_labels.view(-1))
         acc = (text_preds == filtered_labels).type(torch.float).mean()*100
         return {'loss':loss, 'acc':acc}
+
+    def mrc_step(self,batch,batch_idx,type='kl'):
+
+        # Mask before projection
+        batch = self.pp.mask_img(batch) 
+        batch = self.pp.img_vectorize(batch, model=self)     
+        #Dummy text labels
+        txt_labels = torch.full_like(batch['txt']['input_ids'], -100, device=self.device)  
+
+        label_mask = batch['img']['label_mask'] # filter to masked idx only
+        img_labels = batch['img']['cls_probs']      
+        
+        outputs = self(
+            input_ids=batch['txt']['input_ids'],
+            attention_mask=batch['txt']['att_mask'],
+            # token_type_ids=batch['txt']['type_ids'],    # Let model auto-compute
+            # position_ids=batch['txt']['pos_ids'],       # let model auto (use absolute pos)
+            head_mask=None,
+            inputs_embeds=None,
+            visual_embeds=batch['img']['visual_embeds'],
+            visual_attention_mask=batch['img']['att_mask'],
+            visual_token_type_ids=None,
+            image_text_alignment=None,
+            output_attentions=False,
+            output_hidden_states=False,
+            return_dict=True,
+        )
+        # Most code borrowed from HF visualbertforpretraining
+        sequence_output, pooled_output = outputs[:2]
+        txt_sequence, img_sequence = torch.split(
+            sequence_output, 
+            [txt_labels.shape[1], img_labels.shape[1]], 
+            dim=1
+            )
+
+        prediction_soft_label = self.image_mrc_head(img_sequence)
+        prediction_soft_label = F.log_softmax(
+                prediction_soft_label, dim=-1)
+        loss = F.kl_div(prediction_soft_label[label_mask], img_labels[label_mask], reduction='batchmean',log_target=True)
+        return {'loss':loss}
 
     def mfr_step(self, batch, batch_idx):
         # num_features = batch['img']['num_boxes'][0]
@@ -540,10 +587,14 @@ class MMRadForClassification(MMRad):
         )
         self.cls.apply(self.init_weights)
 
-        if self.hparams.img_only:
-            print(f"Setting text inputs to 0 / Masking")
-        if self.hparams.txt_only:
-            print(f"Txt only- masking visual elements")
+        if self.hparams.tune_on=='image':
+            print(f"Image only fine tuning- Setting text inputs to 0 / Masking")
+        elif self.hparams.tune_on=='text':
+            print(f"Text only- masking visual elements")
+        elif self.hparams.test_on=='image':
+            print(f"Training on I+T, testing on image")
+        elif self.hparams.test_on=='text':
+            print(f"Training on I+T, testing on text")
 
     def training_step(self, batch, batch_idx):
         metrics = self.shared_step(batch, batch_idx)
@@ -567,7 +618,7 @@ class MMRadForClassification(MMRad):
 
     def test_step(self, batch, batch_idx):
 
-        metrics = self.shared_step(batch, batch_idx)
+        metrics = self.shared_step(batch, batch_idx, stage='test')
       
         # Log per-step metrics
         logs = {'test_'+k:v for k,v in metrics.items() if k!='preds'}
@@ -575,7 +626,7 @@ class MMRadForClassification(MMRad):
                       prog_bar = True, logger = True, batch_size = self.hparams.valid_batch_size)
         return {'loss': metrics['loss'], 'preds':metrics['preds']}        
 
-    def shared_step(self, batch, batch_idx):
+    def shared_step(self, batch, batch_idx, stage='train'):
         # a batch should be a dict containing:
         #   - input_ids
         #   - attention_mask
@@ -590,7 +641,8 @@ class MMRadForClassification(MMRad):
                                             img_box=batch['img']['boxes'])
         
         # process txt
-        if self.hparams.img_only:
+        # if self.hparams.img_only:
+        if self.hparams.tune_on == 'image' or (stage=='test' and self.hparams.test_on=='image'):
             batch_size = len(batch['img']['id'])
             seq_len = self.hparams.max_seq_len
             batch['txt']['input_ids'] = torch.zeros(batch_size, seq_len, device=self.device, dtype=torch.int)
@@ -602,8 +654,10 @@ class MMRadForClassification(MMRad):
             batch = self.pp.tokenize_pad_vectorize(batch)
             batch['txt']['input_ids'] = batch['txt']['input_ids'].to(self.device)
 
-        if self.hparams.txt_only:
+        # if self.hparams.txt_only:
+        if self.hparams.tune_on == 'text' or (stage=='test' and self.hparams.test_on=='text'):
             visual_attention_mask=torch.zeros((len(batch['img']['id']), num_features), device=self.device)
+            visual_embeds = torch.zeros_like(visual_embeds, device=self.device)
         else:
             visual_attention_mask=torch.ones((len(batch['img']['id']), num_features), device=self.device)
 
