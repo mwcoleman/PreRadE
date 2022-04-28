@@ -47,8 +47,10 @@ def parse_args(stage):
     
 
     ## Classification only
-    parser.add_argument('--img_only', dest='img_only', default=False, type=bool)
-    parser.add_argument('--txt_only', dest='txt_only', default=False, type=bool)
+    parser.add_argument('--tune_on', default='mm')
+    parser.add_argument('--test_on', default='mm')
+    # parser.add_argument('--img_only', dest='img_only', default=False, type=bool)
+    # parser.add_argument('--txt_only', dest='txt_only', default=False, type=bool)
     parser.add_argument('--easy_classification', default=False)
 
     ##### DATA #####
@@ -60,11 +62,6 @@ def parse_args(stage):
     parser.add_argument("--use_val_split", default=False, type=bool) # Splits from train by default
     parser.add_argument("--no_evaluation", default=False, type=bool) # eval model after
     parser.add_argument("--no_finetune", default=False, type=bool)
-    # parser.add_argument("--dataset", dest='dataset', default='mimic')
-    # parser.add_argument("--txt_path", default='studies_with_splits.csv')
-    # parser.add_argument("--img_path", default='mimic_train_100k.tsv')
-    # parser.add_argument("--valid_data", dest='valid_data', default=None) # name of .tsv file
-    # parser.add_argument("--test_data", default=None)
     parser.add_argument("--drop_last", dest='drop_last', default=True)
     parser.add_argument("--shuffle", default=True)
     parser.add_argument("--topk", default=0, type=int)

@@ -398,7 +398,7 @@ class MMRadForPretraining(MMRad):
         prediction_soft_label = self.image_mrc_head(img_sequence)
         prediction_soft_label = F.log_softmax(
                 prediction_soft_label, dim=-1)
-        loss = F.kl_div(prediction_soft_label[label_mask], img_labels[label_mask], reduction='batchmean',log_target=True)
+        loss = F.kl_div(prediction_soft_label[label_mask], img_labels[label_mask], reduction='mean',log_target=True)
         return {'loss':loss}
 
     def mfr_step(self, batch, batch_idx):

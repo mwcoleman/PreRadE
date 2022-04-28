@@ -34,9 +34,10 @@ if __name__=='__main__':
         args.max_steps = 2000
         args.topk = 5120
         args.load_model = "scratch"#"uclanlp/visualbert-vqa-coco-pre"
-        args.tasks = "pc"
+        args.tasks = "mrc"
         args.log_offline = True
         args.run_name = "debug"
+        args.train = 'mimic_0.6125'
 
 
     # Define run name:

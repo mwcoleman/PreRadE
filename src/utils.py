@@ -29,7 +29,7 @@ def load_tsv(fname, topk=None):
             # slice from 2: to remove b' (csv.writer wraps all vals in str())
             new_item['features'] = np.frombuffer(base64.b64decode(item['features'][2:]), dtype=np.float32).reshape(num_boxes,-1).copy()
             new_item['boxes'] = np.frombuffer(base64.b64decode(item['boxes'][2:]), dtype=np.float32).reshape(num_boxes,4).copy()
-            new_item['cls_probs'] = np.frombuffer(base64.b64decode(item['cls_probs'][2:]), dtype=np.float32).reshape(num_boxes,-1).copy()
+            # new_item['cls_probs'] = np.frombuffer(base64.b64decode(item['cls_probs'][2:]), dtype=np.float32).reshape(num_boxes,-1).copy()
             data[item['img_id']] = new_item
             if topk is not None and len(data) == topk:
                 break

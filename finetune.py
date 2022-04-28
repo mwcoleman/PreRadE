@@ -1,4 +1,4 @@
-import os, json, sys
+import os, json, sys, shutil
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, StochasticWeightAveraging
@@ -27,6 +27,8 @@ def load_paths_dict(cfg='data_paths.json'):
         pd = json.loads(file.read()) # use `json.loads` to do the reverse
     return pd
 
+WANDB_DISABLE_CODE = True
+
 if __name__=='__main__':
 
     args = parse_args(stage='ft')
@@ -46,6 +48,7 @@ if __name__=='__main__':
         args.project='mmRad-mimic'
         args.epochs = 0
         args.topk = 5120 #10240
+        args.tune_on = 'text'
         # args.load_model = '/media/matt/data21/mmRad/checkpoints/FT/FT-baseline/encoder'#"/media/matt/data21/mmRad/checkpoints/PT/mlm-mfr-itm/encoder" #/media/matt/data21/mmRad/checkpoints/PT/12L-SWA-mlm_mfr_itm/backbone/epoch=54-step=91519.ckpt"  #"uclanlp/visualbert-vqa-coco-pre" # 
         args.log_offline = True
     
@@ -90,7 +93,7 @@ if __name__=='__main__':
 
         # If run name specified and all models run; then tack it on to the end of each model name
         # Else it is run_name.
-        log_run_name = model_name + args.run_name if ((args.run_name=='tasks')
+        log_run_name = model_name + args.run_name if ((args.run_name!='tasks')
                         or (len(models)>1)) else args.run_name
 
         ### Print run config
@@ -108,8 +111,8 @@ if __name__=='__main__':
         Train Dataset: {args.train}
         Train size: {'full' if args.topk==0 else args.topk}
         Test Dataset: {args.test}
-        Image only?: {args.img_only}
-        Text only?: {args.txt_only}
+        Fine tuning mode: {args.tune_on}
+        Testing mode: {args.test_on}
 
         Learning Rate: {args.lr}
         Using Scheduler: {args.lr_scheduler}\n\n\n""")
@@ -144,10 +147,11 @@ if __name__=='__main__':
             name=log_run_name, 
             project=args.project, 
             offline= args.log_offline, reinit=True,
-            save_dir='/media/matt/data21/mmRad/wandb/'
+            save_dir='/home/matt/Coding/mmRad',
+            log_model=False,
             )
-
-        wandb_logger.watch(model)
+        # Uncomment to track grads.
+        # wandb_logger.watch(model, log_graph=True, log_freq=100)
         wandb_logger.experiment.config.update(args)
         
 
@@ -174,7 +178,8 @@ if __name__=='__main__':
             callbacks=callbacks,
             logger=wandb_logger,
             log_every_n_steps=10, 
-            max_epochs=args.epochs, 
+            max_epochs=args.epochs,
+            max_steps=args.steps, 
             deterministic=True,  
             track_grad_norm=-1,
             fast_dev_run=False, 
@@ -184,7 +189,7 @@ if __name__=='__main__':
         trainer.fit(model, dm)
 
         # Save CP & encoder after fine tunining (if any)
-        if args.epochs > 0:
+        if args.epochs > 0 and args.save_cp_path != "none":
             # Save-paths
             cp_path = os.path.join(args.save_cp_path,'FT',log_run_name,'pl_framework')
             encoder_path = os.path.join(args.save_cp_path,'FT',log_run_name,'encoder')
@@ -206,5 +211,11 @@ if __name__=='__main__':
             trainer.test(model, dataloaders=dm)
             wandb_logger.experiment.config['test_size'] = dm.test_size
         wandb.finish()
+
+        # Delete wandb files!
+        try:
+            shutil.rmtree('/home/matt/Coding/mmRad/')
+        except:
+            print("No wandb dir to clear..")
 
     
