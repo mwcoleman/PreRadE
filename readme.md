@@ -1,4 +1,4 @@
-# PreRade
+# PreRadE
 This repository contains code and models for my minor thesis: Self-Supervised learning for Radiological Images and Text: An Evaluation of Pre-text tasks  
 
 Note: codebase is a work in progress and will be updated ongoing (with potential for things to break). 
