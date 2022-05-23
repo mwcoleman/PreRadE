@@ -1,5 +1,5 @@
 # PreRadE
-This repository contains code and models for my minor thesis: Self-Supervised learning for Radiological Images and Text: An Evaluation of Pre-text tasks  
+This repository contains code and models for my minor thesis: `PreRadE: An Evaluation Framework for Pretraining Tasks on Radiology Images and Reports`   
 
 Note: codebase is a work in progress and will be updated ongoing (with potential for things to break). 
 
