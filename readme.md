@@ -16,6 +16,14 @@ In a nutshell, this project aims to evaluate (model-agnostic) a range of common 
 - Weights and biases used for experimental tracking, although again this can be modified as needed
 - Tasks are emprically evaluated for multi-label classification AUC on radiological datasets
 
+## Acknowledgements and Attribution:
+We are grateful for the open source community without which we would not have been able to implement our framework. Aspects of our code are borrowed and/or modified from the following code and documentation sources (complete to the best of our knowledge):
+- The transformers library (huggingface) for model implementations and pretrained checkpoints
+- Detectron2 for visual feature extractor encoder model and pretrained checkpoint
+- chhablani.gunjan@gmail.com for the [detectron2 notebook](https://colab.research.google.com/drive/1bLGxKdldwqnMVA5x4neY7-l_8fKGWQYI?usp=sharing#scrollTo=lmq8C39meEZX) to extract features from a dissected detectron2 model 
+- https://github.com/YIKUAN8/Transformers-VQA for OpenI data preprocessing steps to obtain labels
+- the VisualBert, UNITER and LXMert code repositories for various modelling components.  
+
 ## Data
 - pretraining: MIMIC-CXR 
 - finetuning: MIMIC-CXR, OpenI
