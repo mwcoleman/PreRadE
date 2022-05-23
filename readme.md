@@ -23,6 +23,8 @@ We are grateful for the open source community without which we would not have be
 - chhablani.gunjan@gmail.com for the [detectron2 notebook](https://colab.research.google.com/drive/1bLGxKdldwqnMVA5x4neY7-l_8fKGWQYI?usp=sharing#scrollTo=lmq8C39meEZX) to extract features from a dissected detectron2 model 
 - https://github.com/YIKUAN8/Transformers-VQA for OpenI data preprocessing steps to obtain labels
 - the VisualBert, UNITER and LXMert code repositories for various modelling components.  
+- Sebastian Raschka for the mlextend statistical package and documentation for interpretation
+- Weights and Biases for experiment tracking
 
 ## Data
 - pretraining: MIMIC-CXR 
